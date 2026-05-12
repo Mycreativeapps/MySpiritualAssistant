@@ -1,0 +1,90 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --saffron: #e8670a;
+  --saffron-light: #f5901f;
+  --saffron-dark: #b8520a;
+  --gold: #d4a017;
+  --gold-light: #f0c040;
+  --gold-pale: #fdf3d7;
+  --cream: #fff9f0;
+  --deep-maroon: #1a0a00;
+  --text-primary: #1a0a00;
+  --text-muted: #6b4c2a;
+  --white: #ffffff;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --shadow: 0 8px 40px rgba(184, 82, 10, 0.15);
+  --shadow-lg: 0 20px 60px rgba(184, 82, 10, 0.25);
+  --border-gold: 1px solid rgba(212, 160, 23, 0.35);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-elegant: 'Cormorant Garamond', serif;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--cream);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-thumb { background: var(--saffron); border-radius: 3px; }
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 103, 10, 0.5); }
+  70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(232, 103, 10, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(232, 103, 10, 0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
