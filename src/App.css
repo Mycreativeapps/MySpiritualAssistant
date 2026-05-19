@@ -293,6 +293,16 @@ body {
   background-clip: text;
 }
 
+.hero-subheading {
+  font-family: var(--font-heading);
+  font-size: clamp(1.4rem, 3.2vw, 2.2rem);
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: -0.5rem;
+  margin-bottom: 2rem;
+  letter-spacing: -0.01em;
+}
+
 .hero-description {
   font-size: clamp(1.1rem, 2vw, 1.25rem);
   color: var(--text-muted);
@@ -535,13 +545,14 @@ body {
   width: 80px;
   height: 80px;
   margin: 0 auto 1.5rem;
-  background: white;
+  background: linear-gradient(135deg, #fff9f0 0%, #ffe3c2 100%);
+  border: 1px solid rgba(232, 103, 10, 0.2);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 25px -5px rgba(232, 103, 10, 0.15);
 }
 
 .audience-item h4 {

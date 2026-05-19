@@ -133,18 +133,17 @@ export default function App() {
       {/* ── Hero Section ── */}
       <main className="hero-section">
         <div className="hero-content">
-          <div className="pill-badge fade-in-up">
-            <span className="pill-dot pulse"></span>
-            <span className="pill-text">My Spiritual Assistant</span>
-          </div>
-
           <h1 className="hero-heading fade-in-up delay-1">
-            Transform Your <br />
-            <span className="text-gradient">Spiritual Life</span>
+            My Spiritual <br />
+            <span className="text-gradient">Assistant</span>
           </h1>
 
-          <p className="hero-description fade-in-up delay-2">
-            A premium spiritual growth and accountability platform. Build consistency, purity, discipline, learning, and devotional happiness in your daily life.
+          <h2 className="hero-subheading fade-in-up delay-2">
+            Transform Your Spiritual Life
+          </h2>
+
+          <p className="hero-description fade-in-up delay-3">
+            Your personal space for mindful routines and inner peace. Build consistency, deep focus, and devotional happiness in your daily life.
           </p>
 
           <div className="hero-actions fade-in-up delay-3">
@@ -167,10 +166,10 @@ export default function App() {
 
         <div className="struggle-grid">
           {[
-            { icon: '🌪️', text: 'Inconsistent chanting & lack of focus' },
-            { icon: '📱', text: 'Digital distraction & irregular sādhana' },
+            { icon: '🌪️', text: 'Lack of focus & inconsistent practices' },
+            { icon: '📱', text: 'Digital noise & disconnected habits' },
             { icon: '⚖️', text: 'Poor lifestyle balance & loss of enthusiasm' },
-            { icon: '👥', text: 'Weak association & no accountability' }
+            { icon: '👥', text: 'Isolated practice & lacking community' }
           ].map((item) => (
             <div className="struggle-card glass-panel" key={item.text}>
               <div className="struggle-icon">{item.icon}</div>
@@ -191,7 +190,7 @@ export default function App() {
           {/* Bento Item 1 */}
           <div className="bento-card bento-large glass-panel">
             <div className="bento-icon-wrapper blue">📅</div>
-            <h3>Daily Sādhana Tracking</h3>
+            <h3>Daily Sadhana Journal</h3>
             <p>Build consistency through simple and meaningful daily check-ins. Track Japa rounds, Morning program, Scripture reading, Śloka memorization, and Temple visits.</p>
             <div className="bento-tags">
               <span>✓ Japa Quality</span>
@@ -237,7 +236,7 @@ export default function App() {
             <p>Develop strong habits and personal discipline.</p>
           </div>
           <div className="audience-item">
-            <div className="audience-avatar">👥</div>
+            <div className="audience-avatar">🤝</div>
             <h4>Mentors</h4>
             <p>Guide students effectively with meaningful insights.</p>
           </div>
