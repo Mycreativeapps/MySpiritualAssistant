@@ -750,12 +750,329 @@ body {
   color: #94a3b8;
 }
 
+/* ─── Hero Tagline ─── */
+.hero-tagline {
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  color: var(--text-muted);
+  max-width: 680px;
+  margin: -1rem auto 2.5rem;
+  line-height: 1.75;
+}
+
+.hero-tagline strong {
+  color: var(--primary);
+}
+
+/* ─── Section Divider ─── */
+.section-divider {
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 100px;
+  margin: 0 auto 4rem;
+}
+
+/* ─── Problem Section extra ─── */
+.problem-cta-text {
+  text-align: center;
+  margin-top: 3rem;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 620px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.7;
+}
+
+.problem-cta-text strong {
+  color: var(--text-main);
+}
+
+/* ─── Features Grid ─── */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+}
+
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.feature-card {
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: var(--transition);
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -10px rgba(124, 58, 237, 0.12);
+}
+
+.feature-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.feature-card-header .bento-icon-wrapper {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.feature-card-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.feature-card-sub {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.feature-track-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.feature-card-note {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+  border-left: 3px solid var(--primary);
+  padding-left: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.feature-card-note strong {
+  color: var(--text-main);
+}
+
+/* ─── Track List ─── */
+.track-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.track-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.track-dot {
+  color: var(--primary);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─── Wisdom Section ─── */
+.wisdom-container {
+  padding: 3.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.wisdom-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
+}
+
+.wisdom-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+@media (min-width: 768px) {
+  .wisdom-grid {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 3rem;
+  }
+}
+
+.wisdom-divider-v {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .wisdom-divider-v {
+    display: block;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, rgba(124, 58, 237, 0.25), transparent);
+    align-self: stretch;
+  }
+}
+
+.wisdom-col-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+/* ─── Key Features Grid ─── */
+.key-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.key-feature-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  transition: var(--transition);
+  border-radius: var(--radius-md);
+}
+
+.key-feature-pill:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -8px rgba(124, 58, 237, 0.12);
+}
+
+.key-feature-icon {
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.key-feature-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.4;
+}
+
+/* ─── CTA Section ─── */
+.cta-container {
+  padding: 4rem;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.cta-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), #d946ef, var(--secondary));
+}
+
+.cta-content {
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.cta-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.cta-desc {
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  max-width: 620px;
+}
+
+.cta-highlight {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary);
+  font-style: italic;
+}
+
+.cta-divider {
+  width: 50px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 100px;
+}
+
+.cta-begin-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.cta-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+.cta-step {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: rgba(124, 58, 237, 0.05);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-main);
+  text-align: left;
+}
+
+.cta-step-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.cta-btn {
+  margin-top: 0.5rem;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .hero-heading {
-    font-size: 3rem;
+    font-size: 2.6rem;
   }
-  .donate-container {
+  .donate-container,
+  .wisdom-container,
+  .cta-container {
     padding: 2rem 1.5rem;
   }
   .btn-primary,
@@ -765,5 +1082,11 @@ body {
   }
   .nav-title {
     display: none;
+  }
+  .key-features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cta-steps {
+    max-width: 100%;
   }
 }
