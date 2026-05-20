@@ -32,6 +32,94 @@ const DONATION_DETAILS = [
   },
 ];
 
+const STRUGGLES = [
+  { icon: '📿', text: 'Inconsistent chanting' },
+  { icon: '🧠', text: 'Lack of focus in prayer and study' },
+  { icon: '👥', text: 'Weak association' },
+  { icon: '⚖️', text: 'Poor lifestyle balance' },
+  { icon: '🌀', text: 'Irregular sadhana' },
+  { icon: '📱', text: 'Digital distraction' },
+  { icon: '🔥', text: 'Loss of enthusiasm' },
+  { icon: '🧭', text: 'No accountability or guidance' },
+];
+
+const SADHANA_TRACKS = [
+  'Japa rounds & quality',
+  'Morning program attendance',
+  'Scripture reading',
+  'Shloka memorization',
+  'Prayers & reflections',
+  'Temple visit',
+  'Kirtana participation',
+  'Service activities',
+  'Hearing classes',
+  'Cleanliness & deity worship',
+  'Ekadasi observance',
+  'Association with devotees',
+  'Sleep & discipline habits',
+];
+
+const HEALTH_SCORE_POINTS = [
+  'Areas of strength',
+  'Areas needing attention',
+  'Consistency patterns',
+  'Growth trends',
+  'Lifestyle balance',
+];
+
+const GUIDED_GROWTH_FEATURES = [
+  'Habit-building reminders',
+  'Weekly goals',
+  'Personalized encouragement',
+  'Reflection prompts',
+  'Accountability system',
+  'Mentor review options',
+  'Progress milestones',
+  'Thematic growth plans',
+];
+
+const STUDY_TRACKS = [
+  'Bhakti Sastri progress',
+  'Bhakti Vaibhava studies',
+  'Small books completion',
+  'Daily reading targets',
+  'Verse memorization',
+  'Lecture hearing',
+  'Notes & realizations',
+];
+
+const WISDOM_SOURCES = [
+  'Bhagavad-gita',
+  'Srimad Bhagavatam',
+  'The teachings of great acharyas',
+  'Principles of devotional lifestyle and Sadhana',
+];
+
+const SPIRITUAL_QUALITIES = [
+  'Compassion',
+  'Humility',
+  'Self-control',
+  'Cleanliness',
+  'Steadiness',
+  'Simplicity',
+  'Devotional absorption',
+];
+
+const KEY_FEATURES = [
+  { icon: '✅', text: 'Daily check-in system' },
+  { icon: '📊', text: 'Spiritual analytics dashboard' },
+  { icon: '🔥', text: 'Streaks & consistency tracking' },
+  { icon: '🎯', text: 'Goal-based growth plans' },
+  { icon: '🤝', text: 'Mentor connection' },
+  { icon: '🔔', text: 'Notifications & reminders' },
+  { icon: '📓', text: 'Reflection journal' },
+  { icon: '🎉', text: 'Event participation tracking' },
+  { icon: '📚', text: 'Study planner' },
+  { icon: '🏆', text: 'Awards & milestone system' },
+  { icon: '🌐', text: 'Multi-language support' },
+  { icon: '🛕', text: 'Community engagement tools' },
+];
+
 /* ─── Sub-components ─────────────────────────────────────────── */
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
@@ -44,7 +132,7 @@ function CopyButton({ text }) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy!", err);
+      console.error('Failed to copy!', err);
     }
   };
 
@@ -91,6 +179,23 @@ function PaymentCard({ card }) {
   );
 }
 
+function TrackList({ items }) {
+  return (
+    <ul className="track-list">
+      {items.map((item) => (
+        <li key={item} className="track-item">
+          <span className="track-dot">•</span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SectionDivider() {
+  return <div className="section-divider" aria-hidden="true" />;
+}
+
 /* ─── Main App ───────────────────────────────────────────────── */
 export default function App() {
   const [scrolled, setScrolled] = useState(false);
@@ -123,8 +228,8 @@ export default function App() {
       <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
         <div className="nav-inner">
           <div className="nav-brand">
-            <img src={appLogo} alt="Logo" className="nav-logo" />
-            <span className="nav-title">My Spiritual Assistant</span>
+            <img src={appLogo} alt="Spiritual Health Coach Logo" className="nav-logo" />
+            <span className="nav-title">Spiritual Health Coach</span>
           </div>
           <a href="#donate" className="btn-nav">Support Us</a>
         </div>
@@ -133,17 +238,29 @@ export default function App() {
       {/* ── Hero Section ── */}
       <main className="hero-section">
         <div className="hero-content">
-          <h1 className="hero-heading fade-in-up delay-1">
-            My Spiritual <br />
-            <span className="text-gradient">Assistant</span>
+          <div className="pill-badge fade-in-up delay-1">
+            <span className="pill-dot pulse"></span>
+            <span className="pill-text">My Spiritual Assistant</span>
+          </div>
+
+          <h1 className="hero-heading fade-in-up delay-2">
+            Transform Your Spiritual Life<br />
+            <span className="text-gradient">with a Personal Sadhana Companion</span>
           </h1>
 
-          <h2 className="hero-subheading fade-in-up delay-2">
-            Transform Your Spiritual Life
+          <h2 className="hero-subheading fade-in-up delay-3">
+            Spiritual Health Coach
           </h2>
 
           <p className="hero-description fade-in-up delay-3">
-            Your personal space for mindful routines and inner peace. Build consistency, deep focus, and devotional happiness in your daily life.
+            A complete spiritual growth and accountability platform designed to help practitioners build
+            consistency, purity, discipline, learning, and devotional happiness in daily life.
+          </p>
+
+          <p className="hero-tagline fade-in-up delay-3">
+            Whether you are a beginner, practicing devotee, mentor, preacher, student, or spiritual
+            seeker — <strong>Spiritual Health Coach</strong> helps you track, improve, and nourish your
+            inner life systematically.
           </p>
 
           <div className="hero-actions fade-in-up delay-3">
@@ -158,108 +275,225 @@ export default function App() {
 
       {/* ── Problem Section ── */}
       <section className="section problem-section" id="problem">
+        <SectionDivider />
         <div className="section-header">
           <h4 className="section-subtitle">THE CHALLENGE</h4>
           <h2 className="section-title">Why Spiritual Health Matters</h2>
-          <p className="section-desc">In today’s fast-moving world, maintaining spiritual focus is difficult. We often struggle with consistency.</p>
+          <p className="section-desc">
+            In today's fast-moving world, maintaining spiritual focus is difficult. We often struggle with:
+          </p>
         </div>
 
         <div className="struggle-grid">
-          {[
-            { icon: '🌪️', text: 'Lack of focus & inconsistent practices' },
-            { icon: '📱', text: 'Digital noise & disconnected habits' },
-            { icon: '⚖️', text: 'Poor lifestyle balance & loss of enthusiasm' },
-            { icon: '👥', text: 'Isolated practice & lacking community' }
-          ].map((item) => (
+          {STRUGGLES.map((item) => (
             <div className="struggle-card glass-panel" key={item.text}>
               <div className="struggle-icon">{item.icon}</div>
               <p>{item.text}</p>
             </div>
           ))}
         </div>
+
+        <p className="problem-cta-text">
+          <strong>Spiritual Health Coach</strong> is designed to bring structure, inspiration, and
+          guidance to your spiritual journey.
+        </p>
       </section>
 
-      {/* ── Bento Features Section ── */}
-      <section className="section bento-section" id="features">
+      {/* ── Features Section ── */}
+      <section className="section features-section" id="features">
+        <SectionDivider />
         <div className="section-header">
           <h4 className="section-subtitle">CORE MODULES</h4>
-          <h2 className="section-title">Everything You Need to Grow</h2>
+          <h2 className="section-title">What the App Helps You Track</h2>
         </div>
 
-        <div className="bento-grid">
-          {/* Bento Item 1 */}
-          <div className="bento-card bento-large glass-panel">
-            <div className="bento-icon-wrapper blue">📅</div>
-            <h3>Daily Sadhana Journal</h3>
-            <p>Build consistency through simple and meaningful daily check-ins. Track Japa rounds, Morning program, Scripture reading, Śloka memorization, and Temple visits.</p>
-            <div className="bento-tags">
-              <span>✓ Japa Quality</span>
-              <span>✓ Cleanliness</span>
-              <span>✓ Ekādaśī</span>
+        <div className="features-grid">
+          {/* Daily Sadhana */}
+          <div className="feature-card glass-panel" id="feature-sadhana">
+            <div className="feature-card-header">
+              <div className="bento-icon-wrapper blue">📅</div>
+              <div>
+                <h3>Daily Sadhana Tracking</h3>
+                <p className="feature-card-sub">Build consistency through simple and meaningful daily check-ins.</p>
+              </div>
             </div>
+            <p className="feature-track-label">Track:</p>
+            <TrackList items={SADHANA_TRACKS} />
           </div>
 
-          {/* Bento Item 2 */}
-          <div className="bento-card glass-panel">
-            <div className="bento-icon-wrapper purple">📊</div>
-            <h3>Spiritual Health Score</h3>
-            <p>Intelligent analytics to identify areas of strength and track lifestyle balance without pressure.</p>
+          {/* Spiritual Health Score */}
+          <div className="feature-card glass-panel" id="feature-score">
+            <div className="feature-card-header">
+              <div className="bento-icon-wrapper purple">📊</div>
+              <div>
+                <h3>Spiritual Health Score</h3>
+                <p className="feature-card-sub">Get a weekly and monthly overview of your spiritual life through intelligent analytics.</p>
+              </div>
+            </div>
+            <p className="feature-track-label">The app helps you identify:</p>
+            <TrackList items={HEALTH_SCORE_POINTS} />
+            <p className="feature-card-note">
+              A personalized <strong>"Spiritual Health Score"</strong> motivates steady progress without
+              comparison or pressure.
+            </p>
           </div>
 
-          {/* Bento Item 3 */}
-          <div className="bento-card glass-panel">
-            <div className="bento-icon-wrapper green">🌱</div>
-            <h3>Guided Growth</h3>
-            <p>Habit-building reminders, personalized encouragement, and a strong accountability system.</p>
+          {/* Guided Growth */}
+          <div className="feature-card glass-panel" id="feature-growth">
+            <div className="feature-card-header">
+              <div className="bento-icon-wrapper green">🌱</div>
+              <div>
+                <h3>Guided Growth System</h3>
+                <p className="feature-card-sub">The app is not just a tracker, it acts like a spiritual mentor.</p>
+              </div>
+            </div>
+            <p className="feature-track-label">Features include:</p>
+            <TrackList items={GUIDED_GROWTH_FEATURES} />
           </div>
 
-          {/* Bento Item 4 */}
-          <div className="bento-card bento-wide glass-panel">
-            <div className="bento-icon-wrapper orange">📚</div>
-            <h3>Study & Learning Dashboard</h3>
-            <p>Designed especially for serious practitioners and students. Track Bhakti Śāstrī progress, small books completion, verse memorization, and capture realizations.</p>
+          {/* Study Dashboard */}
+          <div className="feature-card glass-panel" id="feature-study">
+            <div className="feature-card-header">
+              <div className="bento-icon-wrapper orange">📚</div>
+              <div>
+                <h3>Study & Learning Dashboard</h3>
+                <p className="feature-card-sub">Designed especially for serious practitioners and students.</p>
+              </div>
+            </div>
+            <p className="feature-track-label">Track:</p>
+            <TrackList items={STUDY_TRACKS} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Wisdom Section ── */}
+      <section className="section wisdom-section" id="wisdom">
+        <SectionDivider />
+        <div className="wisdom-container glass-panel">
+          <div className="section-header" style={{ marginBottom: '2.5rem' }}>
+            <h4 className="section-subtitle">FOUNDATION</h4>
+            <h2 className="section-title">Based on Timeless Spiritual Wisdom</h2>
+          </div>
+
+          <div className="wisdom-grid">
+            <div className="wisdom-col">
+              <h4 className="wisdom-col-title">The app is inspired by the teachings of:</h4>
+              <TrackList items={WISDOM_SOURCES} />
+            </div>
+            <div className="wisdom-divider-v" aria-hidden="true" />
+            <div className="wisdom-col">
+              <h4 className="wisdom-col-title">Special growth models aligned with spiritual qualities such as:</h4>
+              <TrackList items={SPIRITUAL_QUALITIES} />
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── Audience Section ── */}
-      <section className="section audience-section">
+      <section className="section audience-section" id="audience">
+        <SectionDivider />
         <div className="section-header">
           <h4 className="section-subtitle">WHO IT'S FOR</h4>
-          <h2 className="section-title">For Every Stage of the Journey</h2>
+          <h2 className="section-title">For Individuals, Mentors & Communities</h2>
         </div>
 
         <div className="audience-container">
           <div className="audience-item">
             <div className="audience-avatar">🧘‍♂️</div>
-            <h4>Individuals</h4>
+            <h4>Individual Practitioners</h4>
             <p>Develop strong habits and personal discipline.</p>
           </div>
           <div className="audience-item">
             <div className="audience-avatar">🤝</div>
-            <h4>Mentors</h4>
+            <h4>Mentors & Counselors</h4>
             <p>Guide students effectively with meaningful insights.</p>
           </div>
           <div className="audience-item">
             <div className="audience-avatar">🛕</div>
-            <h4>Communities</h4>
-            <p>Encourage learning and engagement.</p>
+            <h4>Temples & Spiritual Communities</h4>
+            <p>Encourage participation, learning, accountability, and engagement.</p>
           </div>
           <div className="audience-item">
             <div className="audience-avatar">👨‍👩‍👧‍👦</div>
-            <h4>Families</h4>
+            <h4>Families & Youth</h4>
             <p>Create healthy spiritual routines together.</p>
           </div>
         </div>
       </section>
 
+      {/* ── Key Features Section ── */}
+      <section className="section key-features-section" id="key-features">
+        <SectionDivider />
+        <div className="section-header">
+          <h4 className="section-subtitle">AT A GLANCE</h4>
+          <h2 className="section-title">Key Features</h2>
+        </div>
+
+        <div className="key-features-grid">
+          {KEY_FEATURES.map((f) => (
+            <div className="key-feature-pill glass-panel" key={f.text}>
+              <span className="key-feature-icon">{f.icon}</span>
+              <span className="key-feature-text">{f.text}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── More Than an App Section ── */}
+      <section className="section cta-section" id="more">
+        <SectionDivider />
+        <div className="cta-container glass-panel">
+          <div className="cta-content">
+            <h4 className="section-subtitle">OUR MISSION</h4>
+            <h2 className="cta-title">More Than an App</h2>
+            <p className="cta-desc">
+              Spiritual Health Coach is an effort to combine timeless wisdom with modern technology —
+              helping sincere seekers live with greater awareness, discipline, purpose, and devotion.
+            </p>
+            <p className="cta-highlight">
+              Small daily improvements create lifelong transformation.
+            </p>
+
+            <div className="cta-divider" aria-hidden="true" />
+
+            <h3 className="cta-begin-title">Begin Your Journey</h3>
+            <div className="cta-steps">
+              <div className="cta-step">
+                <span className="cta-step-icon">📿</span>
+                <span>Track your practice.</span>
+              </div>
+              <div className="cta-step">
+                <span className="cta-step-icon">💪</span>
+                <span>Strengthen your habits.</span>
+              </div>
+              <div className="cta-step">
+                <span className="cta-step-icon">✨</span>
+                <span>Stay inspired.</span>
+              </div>
+              <div className="cta-step">
+                <span className="cta-step-icon">🌱</span>
+                <span>Grow spiritually — one day at a time.</span>
+              </div>
+            </div>
+
+            <a href="#donate" className="btn-primary cta-btn">
+              Support the Project
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── Donate Section ── */}
-      <section className="section donate-section">
+      <section className="section donate-section" id="donate">
+        <SectionDivider />
         <div className="donate-container glass-panel">
           <div className="donate-content">
-            <h2 className="donate-title" id="donate">Support The Project</h2>
+            <h2 className="donate-title">Support The Project</h2>
             <p className="donate-desc">
-              My Spiritual Assistant is an effort to combine timeless wisdom with modern technology. Small daily improvements create lifelong transformation. Support the development of this app by contributing below.
+              Spiritual Health Coach is an effort to combine timeless wisdom with modern technology.
+              Small daily improvements create lifelong transformation. Support the development of this
+              app by contributing below.
             </p>
             <div className="payment-grid">
               {DONATION_DETAILS.map(card => (
@@ -276,11 +510,11 @@ export default function App() {
         <div className="footer-inner">
           <div className="footer-brand">
             <img src={appLogo} alt="Logo" className="footer-logo" />
-            <span>My Spiritual Assistant</span>
+            <span>Spiritual Health Coach</span>
           </div>
           <p className="footer-mantra">Your companion for conscious spiritual growth.</p>
           <div className="footer-copyright">
-            © {new Date().getFullYear()} My Spiritual Assistant. All rights reserved.
+            © {new Date().getFullYear()} Spiritual Health Coach. All rights reserved.
           </div>
         </div>
       </footer>
