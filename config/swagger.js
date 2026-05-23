@@ -11,7 +11,9 @@ const swaggerOptions = {
         },
         servers: [
             {
-                url: `http://localhost:${process.env.PORT}`,
+                url: `https://myspiritualassistant.onrender.com`,
+                // url: `https://myspiritualassistant.com`,
+                // url: `http://localhost:${process.env.PORT}`,
             },
         ],
         components: {
