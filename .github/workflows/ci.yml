@@ -3,7 +3,7 @@ name: CI and Docker Push
 on:
   push:
     branches:
-      - Backend-Prod
+      - Backend/prod
   workflow_dispatch:
 
 permissions:
