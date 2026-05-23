@@ -2,6 +2,25 @@ version: '3.9'
 
 services:
 
+  backend:
+    image: mycreativeapps/myspiritualassistant:1.0.1
+    container_name: myspiritualassistant-backend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis-cache
+
+  redis-cache:
+    image: redis:alpine
+    container_name: redis-cache
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
   postgres-dev:
     image: postgres:16
     container_name: postgres-dev
@@ -32,3 +51,4 @@ services:
 volumes:
   postgres_dev_data:
   postgres_prod_data:
+  redis_data:
