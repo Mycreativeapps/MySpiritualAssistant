@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install only production dependencies
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # ─────────────────────────────────────────────
 # Stage 2: Production Runtime Image
@@ -21,11 +21,18 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copy installed node_modules from builder stage with correct ownership
-COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
+# Copy installed node_modules from builder stage
+COPY --from=builder /app/node_modules ./node_modules
 
-# Copy application source code with correct ownership
-COPY --chown=appuser:appgroup . .
+# Copy application source code
+COPY . .
+
+# Remove .env from the image — environment variables should be
+# injected at runtime (via AWS ECS Task Definition / EC2 env vars)
+RUN rm -f .env
+
+# Set Node.js to production mode
+ENV NODE_ENV=production
 
 # Use non-root user
 USER appuser
