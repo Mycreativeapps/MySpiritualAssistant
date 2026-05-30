@@ -1,5 +1,5 @@
 import React, { useState, memo } from 'react';
-import { View, Pressable, Alert, FlatList } from 'react-native';
+import { View, Pressable, Alert, ScrollView } from 'react-native';
 import {
   Text,
   Button,
@@ -140,11 +140,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           borderColor: colors.primary + '50',
         }}
       >
-        <FlatList
-          data={[]}
-          keyExtractor={() => 'create-task-modal'}
-          ListHeaderComponent={
-            <View style={{ padding: 24 }}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={{ padding: 24 }}>
               <Text
                 variant="headlineSmall"
                 style={{
@@ -274,37 +271,41 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       style={{ flex: 1 }}
                       onPress={() => setShowStartDatePicker(true)}
                     >
-                      <TextInput
-                        label="Start Date"
-                        value={
-                          startDate ? startDate.toISOString().split('T')[0] : ''
-                        }
-                        mode="outlined"
-                        editable={false}
-                        placeholder="Select"
-                        style={{ backgroundColor: colors.surface }}
-                        textColor={colors.text}
-                        outlineColor={colors.border}
-                        right={<TextInput.Icon icon="calendar-today" />}
-                      />
+                      <View pointerEvents="none">
+                        <TextInput
+                          label="Start Date"
+                          value={
+                            startDate ? startDate.toISOString().split('T')[0] : ''
+                          }
+                          mode="outlined"
+                          editable={false}
+                          placeholder="Select"
+                          style={{ backgroundColor: colors.surface }}
+                          textColor={colors.text}
+                          outlineColor={colors.border}
+                          right={<TextInput.Icon icon="calendar-today" />}
+                        />
+                      </View>
                     </Pressable>
                     <Pressable
                       style={{ flex: 1 }}
                       onPress={() => setShowEndDatePicker(true)}
                     >
-                      <TextInput
-                        label="End Date"
-                        value={
-                          endDate ? endDate.toISOString().split('T')[0] : ''
-                        }
-                        mode="outlined"
-                        editable={false}
-                        placeholder="Select"
-                        style={{ backgroundColor: colors.surface }}
-                        textColor={colors.text}
-                        outlineColor={colors.border}
-                        right={<TextInput.Icon icon="calendar-today" />}
-                      />
+                      <View pointerEvents="none">
+                        <TextInput
+                          label="End Date"
+                          value={
+                            endDate ? endDate.toISOString().split('T')[0] : ''
+                          }
+                          mode="outlined"
+                          editable={false}
+                          placeholder="Select"
+                          style={{ backgroundColor: colors.surface }}
+                          textColor={colors.text}
+                          outlineColor={colors.border}
+                          right={<TextInput.Icon icon="calendar-today" />}
+                        />
+                      </View>
                     </Pressable>
                   </View>
                 </View>
@@ -475,9 +476,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </Button>
               </View>
             </View>
-          }
-          renderItem={() => null}
-        />
+        </ScrollView>
       </Modal>
 
       <DateTimePickerModal

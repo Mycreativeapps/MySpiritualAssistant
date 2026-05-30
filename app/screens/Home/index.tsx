@@ -35,6 +35,171 @@ import { useNavigation } from '@react-navigation/native';
 import { Logo } from '../../assets/images/exports';
 import CreateTaskModal from './CreateTaskModal';
 
+interface DailyTaskCardProps {
+  item: any;
+  colors: any;
+  styles: any;
+  formatTime: (timeStr: string) => string;
+  getTimeIcon: (timeStr: string) => any;
+  handleUpdateScore: (taskId: number, score: number) => void;
+}
+
+const DailyTaskCard: React.FC<DailyTaskCardProps> = React.memo(({
+  item,
+  colors,
+  styles,
+  formatTime,
+  getTimeIcon,
+  handleUpdateScore,
+}) => {
+  const isCompleted = !!item.completed_at;
+  
+  const options = useMemo(() => {
+    return item.options
+      ? typeof item.options === 'string'
+        ? JSON.parse(item.options)
+        : item.options
+      : null;
+  }, [item.options]);
+
+  const availableScores = useMemo(() => {
+    if (!options) return [];
+    return Object.keys(options)
+      .map(k => parseInt(k, 10))
+      .sort((a, b) => a - b);
+  }, [options]);
+
+  const numOptions = availableScores.length;
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [item.daily_task_id, numOptions]);
+
+  if (isCompleted) {
+    return (
+      <Card
+        style={[styles.dailyTaskCard, styles.completedCard]}
+        mode="elevated"
+      >
+        <Card.Content style={{ paddingVertical: 12 }}>
+          <View style={styles.taskHeaderRow}>
+            <View
+              style={[
+                styles.iconWrapper,
+                {
+                  backgroundColor: colors.subtext + '15',
+                },
+              ]}
+            >
+              <Icon
+                name={getTimeIcon(item.scheduled_time)}
+                size={24}
+                color={colors.subtext}
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={[styles.dailyTaskName, styles.completedTaskName]}>
+                {item.task_name}
+              </Text>
+              <Text style={[styles.dailyTaskTime, { color: colors.subtext }]}>
+                {formatTime(item.scheduled_time)}
+              </Text>
+            </View>
+            <View style={styles.scoreCard}>
+              <Text style={styles.scoreValue}>{item.score}</Text>
+              <Text style={styles.scoreLabel}>Score</Text>
+            </View>
+          </View>
+        </Card.Content>
+      </Card>
+    );
+  }
+
+  const safeIndex = Math.max(0, Math.min(currentIndex, numOptions - 1));
+  const currentScore = availableScores[safeIndex] || 0;
+
+  return (
+    <Card style={styles.dailyTaskCard} mode="elevated">
+      <Card.Content style={{ paddingVertical: 12 }}>
+        <View style={styles.taskHeaderRow}>
+          <View
+            style={[
+              styles.iconWrapper,
+              {
+                backgroundColor: colors.primary + '15',
+              },
+            ]}
+          >
+            <Icon
+              name={getTimeIcon(item.scheduled_time)}
+              size={24}
+              color={colors.primary}
+            />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.dailyTaskName}>{item.task_name}</Text>
+            <Text style={styles.dailyTaskTime}>
+              {formatTime(item.scheduled_time)}
+            </Text>
+          </View>
+        </View>
+      </Card.Content>
+
+      {options && numOptions > 0 && (
+        <Card.Content style={{ paddingHorizontal: 8, paddingVertical: 8 }}>
+          <View style={styles.optionsContainer}>
+            <Text
+              style={{
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: 'bold',
+                color: colors.primary,
+                marginBottom: 8,
+              }}
+            >
+              {options[currentScore.toString()] || ''}
+            </Text>
+
+            <Slider
+              style={{ width: '100%', height: 20 }}
+              minimumValue={0}
+              maximumValue={numOptions - 1}
+              step={1}
+              value={safeIndex}
+              onValueChange={setCurrentIndex}
+              minimumTrackTintColor={colors.primary}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={colors.primary}
+            />
+
+            <Text
+              style={{
+                textAlign: 'center',
+                fontSize: 14,
+                color: colors.subtext,
+                marginTop: 4,
+                minHeight: 20,
+              }}
+            >
+              Score: {currentScore}
+            </Text>
+
+            <Button
+              mode="contained"
+              style={{ marginTop: 16, borderRadius: 8 }}
+              onPress={() => handleUpdateScore(item.daily_task_id, currentScore)}
+            >
+              Submit Score
+            </Button>
+          </View>
+        </Card.Content>
+      )}
+    </Card>
+  );
+});
+
 const Home: React.FC = () => {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -61,8 +226,6 @@ const Home: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showSelection, setShowSelection] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-
-  const [sliderValues, setSliderValues] = useState<Record<string, number>>({});
 
   const isAddingMore = userTasks.length > 0;
 
@@ -232,7 +395,7 @@ const Home: React.FC = () => {
     }
   };
 
-  const getTimeIcon = (timeStr: string) => {
+  const getTimeIcon = (timeStr: string): any => {
     if (!timeStr) return 'schedule';
     try {
       const hours = parseInt(timeStr.split(':')[0], 10);
@@ -316,147 +479,16 @@ const Home: React.FC = () => {
     );
   };
 
-  const renderDailyTask = ({ item }: { item: any }) => {
-    const isCompleted = !!item.completed_at;
-    const options = item.options
-      ? typeof item.options === 'string'
-        ? JSON.parse(item.options)
-        : item.options
-      : null;
-
-    return (
-      <Card
-        style={[styles.dailyTaskCard, isCompleted && styles.completedCard]}
-        mode="elevated"
-      >
-        <Card.Content style={{ paddingVertical: 12 }}>
-          <View style={styles.taskHeaderRow}>
-            <View
-              style={[
-                styles.iconWrapper,
-                {
-                  backgroundColor:
-                    (isCompleted ? colors.subtext : colors.primary) + '15',
-                },
-              ]}
-            >
-              <Icon
-                name={getTimeIcon(item.scheduled_time)}
-                size={24}
-                color={isCompleted ? colors.subtext : colors.primary}
-              />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text
-                style={[
-                  styles.dailyTaskName,
-                  isCompleted && styles.completedTaskName,
-                ]}
-              >
-                {item.task_name}
-              </Text>
-              <Text
-                style={[
-                  styles.dailyTaskTime,
-                  isCompleted && { color: colors.subtext },
-                ]}
-              >
-                {formatTime(item.scheduled_time)}
-              </Text>
-            </View>
-            {isCompleted && (
-              <View style={styles.scoreCard}>
-                <Text style={styles.scoreValue}>{item.score}</Text>
-                <Text style={styles.scoreLabel}>Score</Text>
-              </View>
-            )}
-          </View>
-        </Card.Content>
-
-        {!isCompleted && options && (
-          <Card.Content style={{ paddingHorizontal: 8, paddingVertical: 8 }}>
-            {(() => {
-              const availableScores = Object.keys(options)
-                .map(k => parseInt(k, 10))
-                .sort((a, b) => a - b);
-
-              const numOptions = availableScores.length;
-              if (numOptions === 0) return null;
-
-              // The slider will operate on indices: 0 to numOptions - 1
-              // Default to index 0 (lowest score) if no value is set
-              const currentIndex =
-                sliderValues[item.daily_task_id] !== undefined
-                  ? sliderValues[item.daily_task_id]
-                  : 0;
-
-              // Ensure the current index is within bounds (in case options changed)
-              const safeIndex = Math.max(
-                0,
-                Math.min(currentIndex, numOptions - 1),
-              );
-              const currentScore = availableScores[safeIndex];
-
-              return (
-                <View style={styles.optionsContainer}>
-                  <Text
-                    style={{
-                      textAlign: 'center',
-                      fontSize: 16,
-                      fontWeight: 'bold',
-                      color: colors.primary,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {options[currentScore.toString()] || ''}
-                  </Text>
-
-                  <Slider
-                    style={{ width: '100%', height: 20 }}
-                    minimumValue={0}
-                    maximumValue={numOptions - 1}
-                    step={1}
-                    value={safeIndex}
-                    onValueChange={val => {
-                      setSliderValues(prev => ({
-                        ...prev,
-                        [item.daily_task_id]: val,
-                      }));
-                    }}
-                    minimumTrackTintColor={colors.primary}
-                    maximumTrackTintColor={colors.border}
-                    thumbTintColor={colors.primary}
-                  />
-
-                  <Text
-                    style={{
-                      textAlign: 'center',
-                      fontSize: 14,
-                      color: colors.subtext,
-                      marginTop: 4,
-                      minHeight: 20,
-                    }}
-                  >
-                    Score: {currentScore}
-                  </Text>
-
-                  <Button
-                    mode="contained"
-                    style={{ marginTop: 16, borderRadius: 8 }}
-                    onPress={() =>
-                      handleUpdateScore(item.daily_task_id, currentScore)
-                    }
-                  >
-                    Submit Score
-                  </Button>
-                </View>
-              );
-            })()}
-          </Card.Content>
-        )}
-      </Card>
-    );
-  };
+  const renderDailyTask = ({ item }: { item: any }) => (
+    <DailyTaskCard
+      item={item}
+      colors={colors}
+      styles={styles}
+      formatTime={formatTime}
+      getTimeIcon={getTimeIcon}
+      handleUpdateScore={handleUpdateScore}
+    />
+  );
 
   if (loading && userTasks.length === 0 && masterTasks.length === 0) {
     return (
@@ -636,15 +668,17 @@ const Home: React.FC = () => {
         />
       )}
 
-      <CreateTaskModal
-        visible={showCreateModal}
-        onDismiss={() => setShowCreateModal(false)}
-        onSuccess={() => {
-          setShowCreateModal(false);
-          handleRefresh();
-          Alert.alert('Success', 'Personal task created!');
-        }}
-      />
+      {showCreateModal && (
+        <CreateTaskModal
+          visible={showCreateModal}
+          onDismiss={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            handleRefresh();
+            Alert.alert('Success', 'Personal task created!');
+          }}
+        />
+      )}
     </View>
   );
 };
