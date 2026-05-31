@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # 👈 REQUIRED to push tags      
+  contents: write      
 
 jobs:
   docker:
