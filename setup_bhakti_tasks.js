@@ -84,7 +84,7 @@ async function setupBhaktiTasks() {
             },
             // B. Japa
             {
-                task_name: 'Rounds Completed',
+                task_name: 'Japa Rounds Completed',
                 scheduled_time: '05:30:00',
                 options: {
                     1: 'Less than 8',
