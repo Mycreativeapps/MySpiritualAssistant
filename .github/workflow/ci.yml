@@ -57,3 +57,5 @@ jobs:
           push: true
           file: Dockerfile
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/myspiritualassistant:${{ env.VERSION }}
+
+          
