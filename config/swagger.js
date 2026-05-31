@@ -9,15 +9,10 @@ const swaggerOptions = {
             version: '1.0.0',
             description: 'API documentation for the ISKCON MySpiritualCoach',
         },
-        servers: [
-            {
-                url: `${process.env.APP_URL}:${process.env.PORT}`,
-            },
-        ],
         components: {
             securitySchemes: {
                 bearerAuth: {
-                    type: 'http',
+                    type: process.env.APP_URL.includes('localhost') ? 'http' : 'https',
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
                 },
