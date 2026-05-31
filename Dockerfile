@@ -31,11 +31,11 @@ COPY --chown=appuser:appgroup . .
 USER appuser
 
 # Expose the app port (PORT env var is read by server.js)
-EXPOSE 3000
+EXPOSE 5000
 
 # Health check — AWS ECS / ALB will use this
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api-docs || exit 1
+  CMD wget -qO- http://localhost:5000/api-docs || exit 1
 
 # Start the server
 CMD ["node", "server.js"]

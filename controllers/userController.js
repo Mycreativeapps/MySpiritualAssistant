@@ -99,3 +99,32 @@ exports.syncTimezone = async (req, res) => {
         responseHandler.error(res, 'Failed to sync timezone');
     }
 };
+
+/**
+ * Update user profile (name, profile_url, gender)
+ */
+exports.updateProfile = async (req, res) => {
+    const userId = req.user.id;
+    const { name, profile_url, gender } = req.body;
+
+    try {
+        const result = await db.query(
+            `UPDATE users 
+             SET name = COALESCE($1, name), 
+                 profile_url = COALESCE($2, profile_url),
+                 gender = COALESCE($3, gender)
+             WHERE id = $4 
+             RETURNING id, name, email, phone_number, gender, timezone, profile_url, role`,
+            [name || null, profile_url || null, gender || null, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return responseHandler.error(res, 'User not found', 404);
+        }
+
+        responseHandler.success(res, 'Profile updated successfully', result.rows[0]);
+    } catch (err) {
+        console.error('updateProfile Error:', err);
+        responseHandler.error(res, 'Failed to update profile');
+    }
+};

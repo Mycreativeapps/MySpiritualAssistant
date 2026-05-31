@@ -1,14 +1,15 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const setupSwagger = require('./config/swagger');
 const responseHandler = require('./utils/responseHandler');
-require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const hierarchyRoutes = require('./routes/hierarchyRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/api/hierarchy', hierarchyRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/upload', uploadRoutes);
 
 
 // Generic Error Handler
