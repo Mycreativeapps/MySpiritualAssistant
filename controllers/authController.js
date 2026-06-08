@@ -58,8 +58,8 @@ const generateTokens = async (user, client = db) => {
     const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
 
     await client.query(
-        'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
-        [user.id, refreshToken, expiresAt]
+        "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '3 days')",
+        [user.id, refreshToken]
     );
 
     return { accessToken, refreshToken };
@@ -75,6 +75,19 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS
     }
 });
+
+// Helper function to retry sending emails (handles intermittent ECONNRESET errors)
+const sendMailWithRetry = async (mailOptions, retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await transporter.sendMail(mailOptions);
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed to send email to ${mailOptions.to}:`, error.message);
+            if (i === retries - 1) throw error;
+            await new Promise(res => setTimeout(res, 1500)); // wait 1.5s before retry
+        }
+    }
+};
 
 /**
  * @openapi
@@ -124,8 +137,8 @@ exports.sendOTP = async (req, res) => {
 
         await db.query('DELETE FROM email_verifications WHERE email = $1', [email]);
         await db.query(
-            'INSERT INTO email_verifications (email, otp, expires_at) VALUES ($1, $2, $3)',
-            [email, otp, expiresAt]
+            "INSERT INTO email_verifications (email, otp, expires_at) VALUES ($1, $2, NOW() + INTERVAL '10 minutes')",
+            [email, otp]
         );
 
         const mailOptions = {
@@ -167,7 +180,7 @@ exports.sendOTP = async (req, res) => {
         };
 
         console.log(`Sending OTP to: ${email}`);
-        await transporter.sendMail(mailOptions);
+        await sendMailWithRetry(mailOptions);
         console.log(`OTP successfully sent to: ${email}`);
         responseHandler.success(res, 'OTP sent successfully');
     } catch (err) {
@@ -261,8 +274,8 @@ exports.forgotPassword = async (req, res) => {
 
         await db.query('DELETE FROM email_verifications WHERE email = $1', [email]);
         await db.query(
-            'INSERT INTO email_verifications (email, otp, expires_at) VALUES ($1, $2, $3)',
-            [email, otp, expiresAt]
+            "INSERT INTO email_verifications (email, otp, expires_at) VALUES ($1, $2, NOW() + INTERVAL '10 minutes')",
+            [email, otp]
         );
 
         const mailOptions = {
@@ -282,7 +295,7 @@ exports.forgotPassword = async (req, res) => {
             `
         };
 
-        await transporter.sendMail(mailOptions);
+        await sendMailWithRetry(mailOptions);
         responseHandler.success(res, 'Password reset OTP sent successfully');
     } catch (err) {
         console.error('Error in forgotPassword:', err);
@@ -494,7 +507,7 @@ exports.login = async (req, res) => {
                         </div>
                     `
                 };
-                await transporter.sendMail(mailOptions);
+                await sendMailWithRetry(mailOptions);
                 console.log(`Security email sent to: ${user.email}`);
             } catch (emailErr) {
                 console.error('Failed to send security email:', emailErr);

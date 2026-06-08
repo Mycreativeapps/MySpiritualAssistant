@@ -27,8 +27,8 @@ const initCronJobs = () => {
                 if (now.hour() === 0 && now.minute() < 15) {
                     const dateStr = now.format('YYYY-MM-DD');
                     await db.query(`
-                        INSERT INTO daily_tasks (routine_id, user_id, date, score)
-                        SELECT ur.id, ur.user_id, $1, 0
+                        INSERT INTO daily_tasks (id, routine_id, user_id, date, score)
+                        SELECT concat(floor(extract(epoch from now() * 1000))::text, '_', substr(md5(random()::text), 1, 4)), ur.id, ur.user_id, $1, 0
                         FROM user_routines ur
                         JOIN users u ON ur.user_id = u.id
                         WHERE u.timezone = $2 
