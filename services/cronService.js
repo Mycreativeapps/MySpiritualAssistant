@@ -65,7 +65,7 @@ const initCronJobs = () => {
                 FROM user_routines ur
                 JOIN users u ON ur.user_id = u.id
                 JOIN daily_tasks dt ON dt.routine_id = ur.id 
-                    AND dt.date = (CURRENT_TIMESTAMP AT TIME ZONE u.timezone)::date
+                    AND dt.date = (CURRENT_TIMESTAMP AT TIME ZONE REPLACE(u.timezone, 'Asia/Calcutta', 'Asia/Kolkata'))::date
                 LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
                 WHERE ur.is_active = true 
                 AND u.fcm_token IS NOT NULL 
