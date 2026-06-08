@@ -3,7 +3,7 @@ version: '3.9'
 services:
 
   backend:
-    image: mycreativeapps/myspiritualassistant:1.0.5
+    image: mycreativeapps/myspiritualassistant:1.0.6
     container_name: myspiritualassistant-backend
     restart: always
     ports:
