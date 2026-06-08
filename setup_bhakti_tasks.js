@@ -40,7 +40,7 @@ async function setupBhaktiTasks() {
             // A. Morning Discipline
             {
                 task_name: 'Wake-Up Time',
-                scheduled_time: '04:30:00',
+                scheduled_time: '10:00:00',
                 options: {
                     1: 'After 7:30am',
                     3: '6:30–7:30am',
@@ -51,7 +51,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Mangala Arati Attendance',
-                scheduled_time: '04:30:00',
+                scheduled_time: '10:30:00',
                 options: {
                     1: 'Did not attend',
                     3: 'Listened online partially',
@@ -62,7 +62,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Tulasi Arati / Worship',
-                scheduled_time: '05:00:00',
+                scheduled_time: '11:00:00',
                 options: {
                     1: 'Not done',
                     3: 'Rushed / distracted',
@@ -73,7 +73,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Guru Puja / Guru Connection',
-                scheduled_time: '07:15:00',
+                scheduled_time: '11:30:00',
                 options: {
                     1: 'Not observed',
                     3: 'Mechanically observed',
@@ -85,7 +85,7 @@ async function setupBhaktiTasks() {
             // B. Japa
             {
                 task_name: 'Japa Rounds Completed',
-                scheduled_time: '05:30:00',
+                scheduled_time: '12:00:00',
                 options: {
                     1: 'Less than 8',
                     3: '8–12',
@@ -96,7 +96,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Japa Attention Quality',
-                scheduled_time: '05:30:00',
+                scheduled_time: '12:30:00',
                 options: {
                     1: 'Highly distracted',
                     3: 'Mostly distracted',
@@ -107,7 +107,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Early Morning Japa (before 8am)',
-                scheduled_time: '05:30:00',
+                scheduled_time: '13:00:00',
                 options: {
                     1: 'None',
                     3: '1–4 rounds',
@@ -119,7 +119,7 @@ async function setupBhaktiTasks() {
             // C. Hearing & Study
             {
                 task_name: 'Srila Prabhupada Book Reading',
-                scheduled_time: '08:30:00',
+                scheduled_time: '13:30:00',
                 options: {
                     1: 'None',
                     3: '<10 min',
@@ -130,7 +130,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Hearing Class (Live or Recorded)',
-                scheduled_time: '09:00:00',
+                scheduled_time: '14:00:00',
                 options: {
                     1: 'None',
                     3: 'Partial hearing',
@@ -141,7 +141,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Memorization / Reflection',
-                scheduled_time: '09:30:00',
+                scheduled_time: '14:30:00',
                 options: {
                     1: 'None',
                     3: 'Casual reflection',
@@ -153,7 +153,7 @@ async function setupBhaktiTasks() {
             // D. Temple Practices
             {
                 task_name: 'Sandhya Arati Participation',
-                scheduled_time: '19:00:00',
+                scheduled_time: '15:00:00',
                 options: {
                     1: 'Did not attend',
                     3: 'Brief participation',
@@ -164,7 +164,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Kirtan Participation',
-                scheduled_time: '19:15:00',
+                scheduled_time: '15:30:00',
                 options: {
                     1: 'None',
                     3: 'Passive listening',
@@ -175,7 +175,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Deity Darsan Consciousness',
-                scheduled_time: '07:45:00',
+                scheduled_time: '16:00:00',
                 options: {
                     1: 'None',
                     3: 'Rushed',
@@ -187,7 +187,7 @@ async function setupBhaktiTasks() {
             // E. Lifestyle
             {
                 task_name: 'Honored Only Prasadam',
-                scheduled_time: '13:00:00',
+                scheduled_time: '16:30:00',
                 options: {
                     1: 'Ate outside food',
                     3: 'Doubtful items',
@@ -198,7 +198,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Regulative Principles',
-                scheduled_time: '13:00:00',
+                scheduled_time: '17:00:00',
                 options: {
                     1: 'Broken',
                     3: 'Compromised',
@@ -209,7 +209,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Media Consumption Discipline',
-                scheduled_time: '20:00:00',
+                scheduled_time: '17:30:00',
                 options: {
                     1: 'Excessive / degrading',
                     3: 'Distracting',
@@ -220,7 +220,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Sleeping Time',
-                scheduled_time: '21:30:00',
+                scheduled_time: '18:00:00',
                 options: {
                     1: 'After 11:30pm',
                     3: '10:45–11:30pm',
@@ -232,7 +232,7 @@ async function setupBhaktiTasks() {
             // F. Service
             {
                 task_name: 'Service to Srila Prabhupada’s Mission',
-                scheduled_time: '10:00:00',
+                scheduled_time: '18:30:00',
                 options: {
                     1: 'None',
                     3: 'Minimal obligation',
@@ -243,7 +243,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Quality of Service Mood',
-                scheduled_time: '10:00:00',
+                scheduled_time: '19:00:00',
                 options: {
                     1: 'Complaining / resistant',
                     3: 'Mechanical',
@@ -254,7 +254,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Encouraged Another Devotee',
-                scheduled_time: '11:00:00',
+                scheduled_time: '19:30:00',
                 options: {
                     1: 'None',
                     3: 'Casual interaction',
@@ -266,7 +266,7 @@ async function setupBhaktiTasks() {
             // G. Inner Heart
             {
                 task_name: 'Humility Practice',
-                scheduled_time: '21:00:00',
+                scheduled_time: '20:00:00',
                 options: {
                     1: 'Arrogant reactions',
                     3: 'Defensive',
@@ -277,7 +277,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Anger / Criticism Control',
-                scheduled_time: '21:00:00',
+                scheduled_time: '20:30:00',
                 options: {
                     1: 'Harsh speech',
                     3: 'Repeated criticism',
@@ -299,7 +299,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'Avoiding Vaishnava Aparadha',
-                scheduled_time: '21:00:00',
+                scheduled_time: '21:30:00',
                 options: {
                     1: 'Serious offense',
                     3: 'Critical speech',
@@ -310,7 +310,7 @@ async function setupBhaktiTasks() {
             },
             {
                 task_name: 'End-of-Day Reflection',
-                scheduled_time: '21:30:00',
+                scheduled_time: '22:00:00',
                 options: {
                     1: 'None',
                     3: 'Quick mental check',
@@ -321,14 +321,11 @@ async function setupBhaktiTasks() {
             }
         ];
 
-        let startTime = moment('13:50:00', 'HH:mm:ss');
         for (const task of tasks) {
-            const scheduledTime = startTime.format('HH:mm:00');
             await client.query(
                 'INSERT INTO master_tasks (task_name, scheduled_time, options) VALUES ($1, $2, $3)',
-                [task.task_name, scheduledTime, JSON.stringify(task.options)]
+                [task.task_name, task.scheduled_time, JSON.stringify(task.options)]
             );
-            startTime.add(3, 'minutes');
         }
 
         await client.query('COMMIT');
