@@ -44,7 +44,7 @@ const Splash: React.FC = () => {
         <View style={[styles.badge, { backgroundColor: 'transparent' }]}>
           <Image source={Logo} style={styles.logo} resizeMode="contain" />
         </View>
-        <Text style={styles.title}>My Spiritual Guru</Text>
+        <Text style={styles.title}>My Spiritual Assistant</Text>
         <Text style={styles.subtitle}>
           Divine guidance for your spiritual journey.
         </Text>

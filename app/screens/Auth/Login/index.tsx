@@ -157,7 +157,7 @@ const Login: React.FC = () => {
           <View style={styles.logoBadge}>
             <Image source={Logo} style={styles.logo} resizeMode="contain" />
           </View>
-          <Text style={styles.title}>My Spiritual Guru</Text>
+          <Text style={styles.title}>My Spiritual Assistant</Text>
           <Text style={styles.subtitle}>Sign in to continue your journey</Text>
         </View>
 
