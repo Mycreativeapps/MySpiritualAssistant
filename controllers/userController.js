@@ -78,6 +78,30 @@ exports.getUserStatsById = async (req, res) => {
 };
 
 /**
+ * Get daily total scores for a specific user by ID for the last 7 days
+ */
+exports.getUserScoreHistoryById = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const result = await db.query(`
+            SELECT 
+                date::date as day,
+                SUM(score) as total_score
+            FROM daily_tasks
+            WHERE user_id = $1
+            AND date >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY day
+            ORDER BY day ASC
+        `, [userId]);
+
+        responseHandler.success(res, 'Score history fetched', result.rows);
+    } catch (err) {
+        console.error('getUserScoreHistoryById Error:', err);
+        responseHandler.error(res, 'Failed to fetch score history');
+    }
+};
+
+/**
  * Sync user timezone
  */
 exports.syncTimezone = async (req, res) => {
