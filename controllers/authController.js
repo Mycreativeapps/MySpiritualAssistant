@@ -31,6 +31,7 @@ const registerSchema = Joi.object({
     password: Joi.string().min(6).required(),
     timezone: Joi.string().default('UTC'),
     gender: Joi.string().valid('male', 'female', 'other').required(),
+    year_of_birth: Joi.number().integer().min(1900).max(new Date().getFullYear()).required(),
     fcm_token: Joi.string().optional(),
     country_code: Joi.string().optional()
 });
@@ -51,14 +52,13 @@ const generateTokens = async (user, client = db) => {
     const accessToken = jwt.sign(
         { id: user.id, email: user.email, token_version: user.token_version },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: '365d' }
     );
 
     const refreshToken = crypto.randomBytes(40).toString('hex');
-    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 days
 
     await client.query(
-        "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '3 days')",
+        "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, NOW() + INTERVAL '10 years')",
         [user.id, refreshToken]
     );
 
@@ -356,7 +356,7 @@ exports.register = async (req, res) => {
     const { error: validationError } = registerSchema.validate(req.body);
     if (validationError) return responseHandler.error(res, validationError.details[0].message, 400);
 
-    const { name, email, phone_number, password, timezone, gender, fcm_token } = req.body;
+    const { name, email, phone_number, password, timezone, gender, year_of_birth, fcm_token } = req.body;
     const client = await db.pool.connect();
 
     try {
@@ -383,8 +383,8 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const userId = generateTimestampId();
         const result = await client.query(
-            'INSERT INTO users (id, name, email, phone_number, password_hash, timezone, gender, fcm_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email',
-            [userId, name, email, phone_number, hashedPassword, timezone, gender, fcm_token]
+            'INSERT INTO users (id, name, email, phone_number, password_hash, timezone, gender, year_of_birth, fcm_token) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, email',
+            [userId, name, email, phone_number, hashedPassword, timezone, gender, year_of_birth, fcm_token]
         );
 
         // Clean up verification
@@ -574,7 +574,7 @@ exports.refresh = async (req, res) => {
         const accessToken = jwt.sign(
             { id: session.user_id, email: session.email },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '365d' }
         );
 
         // Slide the last active window
@@ -611,7 +611,13 @@ exports.logout = async (req, res) => {
     const { refresh_token } = req.body;
 
     try {
-        await db.query('DELETE FROM refresh_tokens WHERE token = $1', [refresh_token]);
+        if (refresh_token) {
+            await db.query('DELETE FROM refresh_tokens WHERE token = $1', [refresh_token]);
+        }
+        // Clear FCM token to stop notifications
+        if (req.user && req.user.id) {
+            await db.query('UPDATE users SET fcm_token = NULL WHERE id = $1', [req.user.id]);
+        }
         responseHandler.success(res, 'Logged out successfully');
     } catch (err) {
         console.error('Error logging out:', err);

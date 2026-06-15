@@ -6,6 +6,7 @@ const auth = require('../middlewares/authMiddleware');
 router.get('/my-profile', auth, userController.getProfileStats);
 router.get('/scores/history', auth, userController.getScoreHistory);
 router.get('/:userId/stats', auth, userController.getUserStatsById);
+router.get('/:userId/history', auth, userController.getUserScoreHistoryById);
 router.post('/sync-timezone', auth, userController.syncTimezone);
 router.put('/profile', auth, userController.updateProfile);
 
