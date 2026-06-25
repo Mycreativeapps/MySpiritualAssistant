@@ -59,7 +59,7 @@ const initCronJobs = () => {
                     u.timezone, 
                     u.id as user_id,
                     u.name as user_name,
-                    mt.options as options,
+                    COALESCE(ur.options, mt.options) as options,
                     dt.id as daily_task_id,
                     dt.last_notified_at
                 FROM user_routines ur
@@ -68,6 +68,7 @@ const initCronJobs = () => {
                     AND dt.date = (CURRENT_TIMESTAMP AT TIME ZONE REPLACE(u.timezone, 'Asia/Calcutta', 'Asia/Kolkata'))::date
                 LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
                 WHERE ur.is_active = true 
+                AND COALESCE(ur.notifications_enabled, true) = true
                 AND u.fcm_token IS NOT NULL 
                 AND ur.scheduled_time IS NOT NULL
                 AND u.is_active = true
@@ -79,23 +80,27 @@ const initCronJobs = () => {
                 const userTime = moment().tz(row.timezone);
                 const taskTime = moment(row.scheduled_time, 'HH:mm:ss');
 
-                // Calculate difference in minutes
-                const diffMinutes = moment.duration(taskTime.diff(moment(userTime.format('HH:mm:ss'), 'HH:mm:ss'))).asMinutes();
+                // Calculate difference in minutes ignoring seconds
+                // Positive = task is in the future, 0 = right now, negative = past
+                const diffMinutes = moment.duration(taskTime.diff(moment(userTime.format('HH:mm'), 'HH:mm'))).asMinutes();
 
-                // Send if task is in 4 to 6 minutes
-                if (diffMinutes > 4 && diffMinutes <= 5) {
-                    console.log(`Sending alert for task: ${row.routine_name} to user ${row?.user_name || 'user'}. Diff: ${diffMinutes.toFixed(2)}m`);
+                // Send at EXACT scheduled time: fire when the task time is within
+                // the current cron minute window (0 to +1 min).
+                // This acts as a server-side fallback for users who haven't opened
+                // the app that day (their local Notifee trigger would not be set).
+                if (diffMinutes >= 0 && diffMinutes < 1) {
+                    console.log(`Sending exact-time alert for task: ${row.routine_name} to user ${row?.user_name || 'user'}. Diff: ${diffMinutes.toFixed(2)}m`);
 
-                    const result = await sendNotification(row.fcm_token, {
+                    const notifResult = await sendNotification(row.fcm_token, {
                         data: {
-                            title: 'Upcoming Task Alert! 🕉️',
-                            body: `Your task "${row.routine_name}" starts in 5 minutes. Ready?`,
+                            title: '🕉️ ' + row.routine_name,
+                            body: `Time for your spiritual practice!`,
                             daily_task_id: String(row.daily_task_id),
                             options: JSON.stringify(row.options || [])
                         }
                     });
 
-                    if (result) {
+                    if (notifResult) {
                         await db.query('UPDATE daily_tasks SET last_notified_at = NOW() WHERE id = $1', [row.daily_task_id]);
                     }
                 }
