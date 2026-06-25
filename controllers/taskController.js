@@ -605,6 +605,12 @@ exports.deleteRoutine = async (req, res) => {
             'UPDATE user_routines SET is_active = false WHERE id = $1 RETURNING id',
             [id]
         );
+
+        // Delete any uncompleted daily tasks for this routine so they disappear immediately
+        await db.query(
+            'DELETE FROM daily_tasks WHERE routine_id = $1 AND completed_at IS NULL',
+            [id]
+        );
         responseHandler.success(res, 'Routine deleted');
     } catch (err) {
         console.error('deleteRoutine Error:', err);
