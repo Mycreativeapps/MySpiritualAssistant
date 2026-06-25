@@ -404,6 +404,7 @@ exports.register = async (req, res) => {
                 email: user.email,
                 phone_number: phone_number,
                 gender: gender,
+                year_of_birth: year_of_birth,
                 timezone: timezone,
                 profile_url: null,
                 role: 'devotee'
@@ -524,6 +525,7 @@ exports.login = async (req, res) => {
                 email: user.email,
                 phone_number: user.phone_number,
                 gender: user.gender,
+                year_of_birth: user.year_of_birth,
                 timezone: user.timezone,
                 profile_url: user.profile_url,
                 role: user.role

@@ -33,7 +33,7 @@ exports.getProfileStats = async (req, res) => {
     try {
         const result = await db.query(`
             SELECT 
-                u.id, u.name, u.email, u.phone_number, u.gender, u.timezone, u.profile_url, u.role, u.is_active, u.created_at as join_date,
+                u.id, u.name, u.email, u.phone_number, u.gender, u.year_of_birth, u.timezone, u.profile_url, u.role, u.is_active, u.created_at as join_date,
                 (SELECT COUNT(*) FROM user_routines WHERE user_id = $1 AND is_active = true) as active_routines,
                 (SELECT SUM(score) FROM daily_tasks WHERE user_id = $1) as lifetime_score
             FROM users u
@@ -59,7 +59,7 @@ exports.getUserStatsById = async (req, res) => {
     try {
         const result = await db.query(`
             SELECT 
-                u.name, u.email, u.phone_number, u.gender, u.profile_url, u.created_at as join_date,
+                u.name, u.email, u.phone_number, u.gender, u.year_of_birth, u.profile_url, u.created_at as join_date,
                 (SELECT COUNT(*) FROM daily_tasks WHERE user_id = $1 AND completed_at IS NOT NULL) as tasks_completed,
                 (SELECT SUM(score) FROM daily_tasks WHERE user_id = $1) as lifetime_score
             FROM users u
@@ -129,17 +129,19 @@ exports.syncTimezone = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
     const userId = req.user.id;
-    const { name, profile_url, gender } = req.body;
+    const { name, profile_url, gender, year_of_birth, phone_number } = req.body;
 
     try {
         const result = await db.query(
             `UPDATE users 
              SET name = COALESCE($1, name), 
                  profile_url = COALESCE($2, profile_url),
-                 gender = COALESCE($3, gender)
-             WHERE id = $4 
-             RETURNING id, name, email, phone_number, gender, timezone, profile_url, role`,
-            [name || null, profile_url || null, gender || null, userId]
+                 gender = COALESCE($3, gender),
+                 year_of_birth = COALESCE($4, year_of_birth),
+                 phone_number = COALESCE($5, phone_number)
+             WHERE id = $6 
+             RETURNING id, name, email, phone_number, gender, year_of_birth, timezone, profile_url, role`,
+            [name || null, profile_url || null, gender || null, year_of_birth || null, phone_number || null, userId]
         );
 
         if (result.rows.length === 0) {
