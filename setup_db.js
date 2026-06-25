@@ -20,7 +20,8 @@ const setup = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_active BOOLEAN DEFAULT TRUE,
-                token_version INTEGER DEFAULT 0
+                token_version INTEGER DEFAULT 0,
+                year_of_birth INT
             );
         `);
         console.log('Users table created/verified.');
@@ -53,6 +54,8 @@ const setup = async () => {
                 end_date DATE,
                 is_active BOOLEAN DEFAULT TRUE,
                 master_task_id INTEGER REFERENCES master_tasks(id),
+                notifications_enabled BOOLEAN DEFAULT TRUE,
+                assigned_by VARCHAR(50) REFERENCES users(id),
                 UNIQUE (user_id, master_task_id)
             );
         `);

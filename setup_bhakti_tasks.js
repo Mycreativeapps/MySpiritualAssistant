@@ -7,31 +7,11 @@ async function setupBhaktiTasks() {
         console.log('Setting up Bhakti Health Score tasks...');
         await client.query('BEGIN');
 
-        // 1. Create master_tasks table
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS master_tasks (
-                id SERIAL PRIMARY KEY,
-                task_name VARCHAR(255) NOT NULL,
-                scheduled_time TIME,
-                options JSONB NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        console.log('master_tasks table created/verified.');
-        await client.query(`
-            ALTER TABLE master_tasks 
-            ADD COLUMN IF NOT EXISTS scheduled_time TIME;
-        `);
-
-        // 2. Add master_task_id to user_routines
-        await client.query(`
-            ALTER TABLE user_routines 
-            ADD COLUMN IF NOT EXISTS master_task_id INTEGER REFERENCES master_tasks(id),
-            ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
-            ADD COLUMN IF NOT EXISTS scheduled_time TIME,
-            ADD COLUMN IF NOT EXISTS options JSONB;
-        `);
-        console.log('user_routines table updated.');
+        // Check if master_tasks table exists before seeding
+        await client.query(`SELECT 1 FROM master_tasks LIMIT 1`).catch(async () => {
+            console.log('master_tasks table not found. Please run setup_db.js first.');
+            process.exit(1);
+        });
 
         // 3. Clear and Seed Master Tasks
         await client.query('TRUNCATE TABLE master_tasks RESTART IDENTITY CASCADE');
