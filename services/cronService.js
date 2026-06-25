@@ -96,7 +96,7 @@ const initCronJobs = () => {
                             title: '🕉️ ' + row.routine_name,
                             body: `Time for your spiritual practice!`,
                             daily_task_id: String(row.daily_task_id),
-                            options: JSON.stringify(row.options || [])
+                            options: JSON.stringify([])
                         }
                     });
 
