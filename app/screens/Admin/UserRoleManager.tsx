@@ -132,7 +132,7 @@ const UserRoleManager: React.FC = () => {
                 ) : (
                   <Avatar.Text
                     size={40}
-                    label={item.name.substring(0, 2).toUpperCase()}
+                    label={item.name.trim().charAt(0).toUpperCase()}
                     style={{
                       backgroundColor:
                         item.role === 'admin' ? colors.primary : colors.subtext,

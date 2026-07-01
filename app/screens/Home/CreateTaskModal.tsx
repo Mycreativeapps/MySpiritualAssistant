@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useEffect } from 'react';
 import { View, Pressable, Alert, ScrollView } from 'react-native';
 import {
   Text,
@@ -9,9 +9,13 @@ import {
   Portal,
   Modal,
   RadioButton,
+  Switch,
+  Checkbox,
+  ActivityIndicator,
 } from 'react-native-paper';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Icon from '@react-native-vector-icons/material-icons';
+import moment from 'moment';
 import { useTaskStore } from '../../store';
 import { useThemeColors } from '../../config/styles';
 
@@ -19,15 +23,17 @@ interface CreateTaskModalProps {
   visible: boolean;
   onDismiss: () => void;
   onSuccess: () => void;
+  taskToEdit?: any;
 }
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   visible,
   onDismiss,
   onSuccess,
+  taskToEdit,
 }) => {
   const colors = useThemeColors();
-  const { createCustomTask, loading } = useTaskStore();
+  const { createCustomTask, updateCustomTask, loading } = useTaskStore();
 
   const [taskName, setTaskName] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -41,15 +47,70 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     { label: '' },
     { label: '' },
   ]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [useScheduledTime, setUseScheduledTime] = useState(true);
+  const [notificationTimes, setNotificationTimes] = useState<string[]>([]);
+  const [showNotificationTimePicker, setShowNotificationTimePicker] = useState(false);
+  const [editingNotificationIndex, setEditingNotificationIndex] = useState<number | null>(null);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      const timer = setTimeout(() => setIsReady(true), 150);
+      return () => clearTimeout(timer);
+    } else {
+      setIsReady(false);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (taskToEdit) {
+      setTaskName(taskToEdit.task_name || '');
+      
+      // format scheduled time (e.g., "08:00:00" to "08:00")
+      let st = taskToEdit.scheduled_time || '';
+      if (st.length > 5) {
+        st = st.substring(0, 5);
+      }
+      setScheduledTime(st);
+      
+      setNotificationsEnabled(taskToEdit.notifications_enabled ?? true);
+      
+      let nTimes = taskToEdit.notification_times || [];
+      if (typeof nTimes === 'string') {
+        try { nTimes = JSON.parse(nTimes); } catch(e) { nTimes = []; }
+      }
+      if (!Array.isArray(nTimes)) nTimes = [];
+      setNotificationTimes(nTimes);
+      setUseScheduledTime(nTimes.length === 0);
+      
+      // Handle options
+      let parsedOptions = taskToEdit.options || {};
+      if (typeof parsedOptions === 'string') {
+        try { parsedOptions = JSON.parse(parsedOptions); } catch(e) {}
+      }
+      
+      const optionsArr = [];
+      const keys = Object.keys(parsedOptions).map(Number).sort((a,b)=>a-b);
+      for (const k of keys) {
+        optionsArr.push({ label: parsedOptions[k] });
+      }
+      if (optionsArr.length < 2) {
+        optionsArr.push({ label: '' });
+        optionsArr.push({ label: '' });
+      }
+      setOptionsList(optionsArr);
+      
+      // Schedule type mapping logic could be expanded if start/end dates are used, for now assume daily
+      setScheduleType('daily');
+    } else {
+      resetForm();
+    }
+  }, [taskToEdit, visible]);
 
   const handleCreateCustomTask = async () => {
     if (!taskName) {
       Alert.alert('Error', 'Task name is mandatory.');
-      return;
-    }
-
-    if (!scheduledTime) {
-      Alert.alert('Error', 'Scheduled time is mandatory.');
       return;
     }
 
@@ -98,17 +159,25 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     const payload = {
       task_name: taskName,
       scheduled_time: scheduledTime || '',
+      notification_times: notificationTimes,
       options,
       ...(start_date_str ? { start_date: start_date_str } : {}),
       ...(end_date_str ? { end_date: end_date_str } : {}),
+      notifications_enabled: notificationsEnabled,
     };
 
-    const success = await createCustomTask(payload);
+    let success = false;
+    if (taskToEdit) {
+      success = await updateCustomTask(taskToEdit.routine_id, payload);
+    } else {
+      success = await createCustomTask(payload);
+    }
+
     if (success) {
       resetForm();
       onSuccess();
     } else {
-      Alert.alert('Error', 'Failed to create personal task.');
+      Alert.alert('Error', taskToEdit ? 'Failed to update task.' : 'Failed to create personal task.');
     }
   };
 
@@ -119,6 +188,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setStartDate(null);
     setEndDate(null);
     setOptionsList([{ label: '' }, { label: '' }]);
+    setNotificationsEnabled(true);
+    setUseScheduledTime(true);
+    setNotificationTimes([]);
   };
 
   const handleDismiss = () => {
@@ -130,9 +202,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     <Portal>
       <Modal
         visible={visible}
-        onDismiss={handleDismiss}
+        onDismiss={onDismiss}
         contentContainerStyle={{
-          backgroundColor: colors.surface,
+          backgroundColor: colors.background,
           margin: 20,
           borderRadius: 16,
           maxHeight: '80%',
@@ -140,24 +212,33 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           borderColor: colors.primary + '50',
         }}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={{ padding: 24 }}>
-              <Text
-                variant="headlineSmall"
-                style={{
-                  marginBottom: 4,
-                  fontWeight: 'bold',
-                  color: colors.primary,
-                }}
-              >
-                Create Personal Task
-              </Text>
-              <Text
-                variant="bodySmall"
-                style={{ color: colors.subtext, marginBottom: 24 }}
-              >
-                Add a custom spiritual activity to your daily routine.
-              </Text>
+        {!isReady ? (
+          <View style={{ padding: 40, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={{ padding: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    variant="headlineSmall"
+                    style={{
+                      marginBottom: 4,
+                      fontWeight: 'bold',
+                      color: colors.primary,
+                    }}
+                  >
+                    {taskToEdit ? 'Edit Personal Task' : 'Create Personal Task'}
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: colors.subtext, marginBottom: 24 }}
+                  >
+                    {taskToEdit ? 'Update your personal spiritual activity.' : 'Add a custom spiritual activity to your daily routine.'}
+                  </Text>
+                </View>
+              </View>
 
               <TextInput
                 label="Task Name"
@@ -175,7 +256,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 <View pointerEvents="none">
                   <TextInput
                     label="Scheduled Time"
-                    value={scheduledTime}
+                    value={scheduledTime ? moment(scheduledTime, 'HH:mm').format('hh:mm A') : ''}
                     mode="outlined"
                     placeholder="e.g., 08:00 AM"
                     style={{
@@ -200,6 +281,35 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </View>
               </Pressable>
 
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: 10,
+                  paddingHorizontal: 4,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 8,
+                  backgroundColor: colors.surface,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Icon
+                    name={notificationsEnabled ? 'notifications-active' : 'notifications-off'}
+                    size={22}
+                    color={notificationsEnabled ? colors.primary : colors.subtext}
+                  />
+                  <Text style={{ color: colors.text, fontSize: 14 }}>Notifications</Text>
+                </View>
+                <Switch
+                  value={notificationsEnabled}
+                  onValueChange={setNotificationsEnabled}
+                  color={colors.primary}
+                />
+              </View>
+
               <DateTimePickerModal
                 isVisible={showTimePicker}
                 mode="time"
@@ -214,9 +324,146 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 onCancel={() => setShowTimePicker(false)}
               />
 
-              <Divider
-                style={{ marginBottom: 16, backgroundColor: colors.border }}
+              <Divider style={{ marginBottom: 16, backgroundColor: colors.border }} />
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 6 }}>
+                <Icon name="notifications-active" size={18} color={colors.primary} />
+                <Text variant="titleMedium" style={{ fontWeight: 'bold', color: colors.text }}>
+                  Notification Times
+                </Text>
+              </View>
+              <Text variant="bodySmall" style={{ color: colors.subtext, marginBottom: 12 }}>
+                {scheduledTime
+                  ? "Scheduled time is notified by default. Add extra reminders below."
+                  : "Add notification reminders below for this task."}
+              </Text>
+
+              {scheduledTime ? (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  backgroundColor: colors.primary + '18',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: colors.primary + '50',
+                  marginBottom: 8,
+                  gap: 8,
+                }}>
+                  <Icon name="alarm-on" size={16} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 15, flex: 1 }}>
+                    {moment(scheduledTime, 'HH:mm').format('hh:mm A')}
+                  </Text>
+                  <Text style={{ color: colors.primary, fontSize: 11, opacity: 0.7 }}>default</Text>
+                </View>
+              ) : null}
+
+              {notificationTimes.map((timeStr, index) => (
+                <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Pressable
+                    onPress={() => {
+                      setEditingNotificationIndex(index);
+                      setShowNotificationTimePicker(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      backgroundColor: colors.surface,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      gap: 8,
+                    }}
+                  >
+                    <Icon name="alarm-add" size={16} color={colors.subtext} />
+                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>
+                      {moment(timeStr, 'HH:mm').format('hh:mm A')}
+                    </Text>
+                  </Pressable>
+                  <IconButton
+                    icon="close"
+                    size={18}
+                    iconColor={colors.error}
+                    onPress={() => {
+                      const newTimes = [...notificationTimes];
+                      newTimes.splice(index, 1);
+                      setNotificationTimes(newTimes);
+                    }}
+                  />
+                </View>
+              ))}
+
+              <Pressable
+                onPress={() => {
+                  setEditingNotificationIndex(null);
+                  setShowNotificationTimePicker(true);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 10,
+                  marginBottom: 16,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderStyle: 'dashed',
+                  borderColor: colors.border,
+                  gap: 6,
+                }}
+              >
+                <Icon name="add-alarm" size={17} color={colors.subtext} />
+                <Text style={{ color: colors.subtext, fontWeight: '600', fontSize: 13 }}>
+                  {scheduledTime || notificationTimes.length > 0 ? "Add Extra Reminder" : "Add Reminder"}
+                </Text>
+              </Pressable>
+
+              <DateTimePickerModal
+                isVisible={showNotificationTimePicker}
+                mode="time"
+                onConfirm={date => {
+                  const hours = date.getHours().toString().padStart(2, '0');
+                  const minutes = date.getMinutes().toString().padStart(2, '0');
+                  const newTime = `${hours}:${minutes}`;
+
+                  if (newTime === scheduledTime) {
+                    Alert.alert('Duplicate Time', 'This time is already set as the default scheduled time.');
+                    setShowNotificationTimePicker(false);
+                    setEditingNotificationIndex(null);
+                    return;
+                  }
+
+                  const isDuplicate = notificationTimes.some(
+                    (time, index) => time === newTime && index !== editingNotificationIndex
+                  );
+                  
+                  if (isDuplicate) {
+                    Alert.alert('Duplicate Time', 'You have already added this notification time.');
+                    setShowNotificationTimePicker(false);
+                    setEditingNotificationIndex(null);
+                    return;
+                  }
+
+                  const newTimes = [...notificationTimes];
+                  if (editingNotificationIndex !== null) {
+                    newTimes[editingNotificationIndex] = newTime;
+                  } else {
+                    newTimes.push(newTime);
+                  }
+                  setNotificationTimes(newTimes);
+                  setShowNotificationTimePicker(false);
+                  setEditingNotificationIndex(null);
+                }}
+                onCancel={() => {
+                  setShowNotificationTimePicker(false);
+                  setEditingNotificationIndex(null);
+                }}
               />
+
+              <Divider style={{ marginBottom: 16, backgroundColor: colors.border }} />
 
               <Text
                 variant="titleMedium"
@@ -374,8 +621,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       label="Label"
                       value={item.label}
                       onChangeText={val => {
-                        const newList = [...optionsList];
-                        newList[idx].label = val;
+                        const newList = optionsList.map((o, i) =>
+                          i === idx ? { ...o, label: val } : { ...o },
+                        );
                         setOptionsList(newList);
                       }}
                       mode="outlined"
@@ -459,30 +707,35 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 }}
               >
                 <Button
-                  onPress={handleDismiss}
-                  style={{ marginRight: 8 }}
-                  labelStyle={{ color: colors.subtext }}
+                  mode="text"
+                  onPress={onDismiss}
+                  style={{ flex: 1 }}
+                  textColor={colors.subtext}
+                  disabled={loading}
                 >
                   Cancel
                 </Button>
                 <Button
                   mode="contained"
                   onPress={handleCreateCustomTask}
-                  style={{ borderRadius: 8, paddingHorizontal: 16 }}
-                  loading={loading}
+                  style={{ flex: 1 }}
+                  buttonColor={colors.primary}
                   disabled={loading}
+                  loading={loading}
                 >
-                  Create Task
+                  {taskToEdit ? 'Save Changes' : 'Create Task'}
                 </Button>
               </View>
             </View>
-        </ScrollView>
+          </ScrollView>
+        )}
       </Modal>
 
       <DateTimePickerModal
         isVisible={showStartDatePicker}
         mode="date"
         date={startDate || new Date()}
+        minimumDate={new Date()}
         onConfirm={date => {
           setStartDate(date);
           setShowStartDatePicker(false);

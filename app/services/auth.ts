@@ -14,6 +14,10 @@ export const login = (
   });
 };
 
+export const logout = (refresh_token?: string) => {
+  return api.post('/auth/logout', { refresh_token });
+};
+
 export const register = (userData: any) => {
   return api.post('/auth/register', userData);
 };
@@ -38,6 +42,10 @@ export const getUserStatsById = (userId: string) => {
   return api.get(`/users/${userId}/stats`);
 };
 
+export const getUserScoreHistoryById = (userId: string) => {
+  return api.get(`/users/${userId}/history`);
+};
+
 export const syncTimezone = (timezone: string) => {
   return api.post('/users/sync-timezone', { timezone });
 };
@@ -50,6 +58,6 @@ export const resetPassword = (data: any) => {
   return api.post('/auth/reset-password', data);
 };
 
-export const updateProfile = (data: { name?: string; profile_url?: string; gender?: string }) => {
+export const updateProfile = (data: { name?: string; profile_url?: string; gender?: string; year_of_birth?: number; phone_number?: string }) => {
   return api.put('/users/profile', data);
 };

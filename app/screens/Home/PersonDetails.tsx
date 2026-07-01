@@ -25,7 +25,7 @@ import {
 import Icon from '@react-native-vector-icons/material-icons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useThemeColors } from '../../config/styles';
-import { getUserStatsById } from '../../services/auth';
+import { getUserStatsById, getUserScoreHistoryById } from '../../services/auth';
 import { assignMentor, getMentees } from '../../services/hierarchy';
 import {
   getMasterTasks,
@@ -37,6 +37,7 @@ import { useUserStore } from '../../store';
 import createStyles from './styles';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { updateUserRole } from '../../services/admin';
+import WeeklyProgress from '../../components/Dashboard/WeeklyProgress';
 
 interface PersonData {
   id: string;
@@ -80,15 +81,21 @@ const PersonDetails: React.FC = () => {
     { label: '' },
     { label: '' },
   ]);
+  const [scoreHistory, setScoreHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const GlobalStyles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createLocalStyles(colors), [colors]);
 
   useLayoutEffect(() => {
     if (personData?.func) {
-      const title = personData.func
+      let title = personData.func
         .split('_')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+      if (personData.func === 'assign_task') {
+        title = 'Mentee Profile';
+      }
       navigation.setOptions({ title });
     }
   }, [navigation, personData?.func]);
@@ -98,11 +105,21 @@ const PersonDetails: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       if (!personData?.id) return;
+      setLoading(true);
+      if (personData.func === 'assign_task') {
+        setHistoryLoading(true);
+      }
       try {
-        const [statsRes, menteesRes] = await Promise.all([
+        const promises: Promise<any>[] = [
           getUserStatsById(personData.id),
           getMentees(),
-        ]);
+        ];
+
+        if (personData.func === 'assign_task') {
+          promises.push(getUserScoreHistoryById(personData.id));
+        }
+
+        const [statsRes, menteesRes, historyRes] = await Promise.all(promises);
 
         if (statsRes.data.success) {
           setStats(statsRes.data.data);
@@ -112,10 +129,15 @@ const PersonDetails: React.FC = () => {
           const mentees = menteesRes.data.data;
           setIsMentee(mentees.some((m: any) => m.id === personData.id));
         }
+
+        if (historyRes && historyRes.data.success) {
+          setScoreHistory(historyRes.data.data);
+        }
       } catch (error) {
         console.error('Failed to fetch person stats:', error);
       } finally {
         setLoading(false);
+        setHistoryLoading(false);
       }
     };
 
@@ -317,11 +339,7 @@ const PersonDetails: React.FC = () => {
   const userInitials = useMemo(() => {
     const name = stats?.name || personData?.name;
     if (!name) return 'U';
-    const names = name.split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
-    }
-    return names[0][0].toUpperCase();
+    return name.trim().charAt(0).toUpperCase();
   }, [stats?.name, personData?.name]);
 
   const InfoRow = ({
@@ -471,6 +489,39 @@ const PersonDetails: React.FC = () => {
         </Card>
       )}
 
+      {personData.func === 'assign_task' && (
+        <View style={{ marginTop: 16 }}>
+          {historyLoading ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.primary}
+              style={{ padding: 20 }}
+            />
+          ) : (
+            <WeeklyProgress history={scoreHistory || []} />
+          )}
+        </View>
+      )}
+
+      {/* {personData.func === 'assign_task' && (
+        <Button
+          mode="contained"
+          onPress={() => {
+            fetchMasterTasksList();
+            setShowTaskModal(true);
+          }}
+          style={{
+            marginTop: 16,
+            borderRadius: 12,
+            backgroundColor: colors.primary,
+          }}
+          icon="assignment"
+          textColor="white"
+        >
+          Assign Task
+        </Button>
+      )} */}
+
       {personData.func === 'assign_mentor' && (
         <Button
           mode="contained"
@@ -500,25 +551,6 @@ const PersonDetails: React.FC = () => {
           {isOwnProfile ? 'You cannot be your own admin' : 'Promote to Admin'}
         </Button>
       )}
-
-      {/* {personData.func === 'assign_task' && (
-        <Button
-          mode="outlined"
-          onPress={() => {
-            fetchMasterTasksList();
-            setShowTaskModal(true);
-          }}
-          style={{
-            marginTop: 12,
-            borderRadius: 12,
-            borderColor: colors.primary,
-          }}
-          icon="assignment"
-          textColor={colors.primary}
-        >
-          Assign Task
-        </Button>
-      )} */}
 
       <Portal>
         <Modal
@@ -956,7 +988,7 @@ const PersonDetails: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createLocalStyles = (colors: any) => StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 24,
@@ -968,7 +1000,7 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: '#EEE',
+    backgroundColor: colors.border,
   },
   modalContent: {
     margin: 20,
@@ -992,11 +1024,11 @@ const styles = StyleSheet.create({
   taskName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#333',
+    color: colors.text,
   },
   taskTime: {
     fontSize: 12,
-    color: '#888',
+    color: colors.subtext,
     marginTop: 2,
   },
   modalButton: {
@@ -1013,10 +1045,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#CCC',
+    borderColor: colors.border,
   },
   activeTab: {
-    backgroundColor: '#00000005',
+    backgroundColor: colors.primary + '10',
     borderWidth: 2,
   },
   customForm: {
@@ -1025,7 +1057,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#666',
+    color: colors.subtext,
     marginTop: 12,
     marginBottom: 8,
     textTransform: 'uppercase',

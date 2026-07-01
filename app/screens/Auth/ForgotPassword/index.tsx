@@ -281,7 +281,7 @@ const ForgotPassword: React.FC = () => {
                 secureTextEntry={!showPassword}
                 style={styles.input}
                 error={!!errors.confirmPassword}
-                left={<TextInput.Icon icon="lock-check" />}
+                left={<TextInput.Icon icon="lock-outline" />}
               />
               <HelperText type="error" visible={!!errors.confirmPassword}>
                 {errors.confirmPassword}

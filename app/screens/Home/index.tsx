@@ -8,6 +8,8 @@ import {
   Alert,
   RefreshControl,
   Image,
+  ScrollView,
+  Animated,
 } from 'react-native';
 import {
   Text,
@@ -23,6 +25,8 @@ import {
   IconButton,
   useTheme,
   RadioButton,
+  Switch,
+  Menu,
 } from 'react-native-paper';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Slider from '@react-native-community/slider';
@@ -34,6 +38,7 @@ import createStyles from './styles';
 import { useNavigation } from '@react-navigation/native';
 import { Logo } from '../../assets/images/exports';
 import CreateTaskModal from './CreateTaskModal';
+import SupportUsModal from '../../components/SupportUsModal';
 
 interface DailyTaskCardProps {
   item: any;
@@ -42,6 +47,9 @@ interface DailyTaskCardProps {
   formatTime: (timeStr: string) => string;
   getTimeIcon: (timeStr: string) => any;
   handleUpdateScore: (taskId: number, score: number) => void;
+  user: any;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 const DailyTaskCard: React.FC<DailyTaskCardProps> = React.memo(({
@@ -51,9 +59,17 @@ const DailyTaskCard: React.FC<DailyTaskCardProps> = React.memo(({
   formatTime,
   getTimeIcon,
   handleUpdateScore,
+  user,
+  onEdit,
+  onDelete,
 }) => {
   const isCompleted = !!item.completed_at;
-  
+  const isEditable = !item.assigned_by || item.assigned_by === user?.id;
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  const openMenu = () => setMenuVisible(true);
+  const closeMenu = () => setMenuVisible(false);
+
   const options = useMemo(() => {
     return item.options
       ? typeof item.options === 'string'
@@ -144,6 +160,41 @@ const DailyTaskCard: React.FC<DailyTaskCardProps> = React.memo(({
               {formatTime(item.scheduled_time)}
             </Text>
           </View>
+          {isEditable && (
+            <Menu
+              visible={menuVisible}
+              onDismiss={closeMenu}
+              theme={{ animation: { scale: 1 } }}
+              anchor={
+                <IconButton
+                  icon={() => <Icon name="more-vert" size={24} color={colors.subtext} />}
+                  onPress={openMenu}
+                  style={{ margin: 0 }}
+                />
+              }
+            >
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
+                  onEdit();
+                }}
+                title="Edit"
+                leadingIcon={() => <Icon name="edit" size={20} color={colors.subtext} />}
+              />
+              <Menu.Item
+                onPress={() => {
+                  closeMenu();
+                  Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', onPress: onDelete, style: 'destructive' },
+                  ]);
+                }}
+                title="Delete"
+                leadingIcon={() => <Icon name="delete" size={20} color={colors.error} />}
+                titleStyle={{ color: colors.error }}
+              />
+            </Menu>
+          )}
         </View>
       </Card.Content>
 
@@ -170,16 +221,21 @@ const DailyTaskCard: React.FC<DailyTaskCardProps> = React.memo(({
               value={safeIndex}
               onValueChange={setCurrentIndex}
               minimumTrackTintColor={colors.primary}
-              maximumTrackTintColor={colors.border}
+              maximumTrackTintColor={colors.primary + '80'}
               thumbTintColor={colors.primary}
             />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, marginTop: 4 }}>
+              <Text style={{ fontSize: 12, color: colors.subtext, fontWeight: '600' }}>{availableScores[0]}</Text>
+              <Text style={{ fontSize: 12, color: colors.subtext, fontWeight: '600' }}>{availableScores[numOptions - 1]}</Text>
+            </View>
 
             <Text
               style={{
                 textAlign: 'center',
                 fontSize: 14,
                 color: colors.subtext,
-                marginTop: 4,
+                marginTop: 8,
                 minHeight: 20,
               }}
             >
@@ -203,12 +259,15 @@ const DailyTaskCard: React.FC<DailyTaskCardProps> = React.memo(({
 const Home: React.FC = () => {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const user = useUserStore(state => state.user);
+  const { refreshProfile, loading: userLoading } = useUserStore();
+  const [greetingText, setGreetingText] = useState('Hare Krishna!');
+  const fadeAnim = React.useRef(new Animated.Value(1)).current;
+
   const theme = useTheme();
   const navigation = useNavigation();
 
   // Stores
-  const user = useUserStore(state => state.user);
-  const { refreshProfile, loading: userLoading } = useUserStore();
   const {
     userTasks,
     masterTasks,
@@ -222,20 +281,39 @@ const Home: React.FC = () => {
 
   const loading = tasksLoading || userLoading;
 
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start(() => {
+          setGreetingText(`${user?.name ? user.name.split(' ')[0] : 'Devotee'}`);
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }).start();
+        });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user?.name, fadeAnim]);
+
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
+  const [taskNotifications, setTaskNotifications] = useState<Record<number, boolean>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [showSelection, setShowSelection] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<any>(null);
 
   const isAddingMore = userTasks.length > 0;
 
   const userInitials = useMemo(() => {
     if (!user?.name) return 'U';
-    const names = user.name.split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
-    }
-    return names[0][0].toUpperCase();
+    return user.name.trim().charAt(0).toUpperCase();
   }, [user?.name]);
 
   const handleRefresh = async () => {
@@ -337,16 +415,29 @@ const Home: React.FC = () => {
   }, [masterTasks]);
 
   const toggleTaskSelection = (id: number) => {
-    setSelectedTaskIds(prev =>
-      prev.includes(id) ? prev.filter(tid => tid !== id) : [...prev, id],
-    );
+    setSelectedTaskIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(tid => tid !== id);
+      } else {
+        setTaskNotifications(n => ({ ...n, [id]: true }));
+        return [...prev, id];
+      }
+    });
+  };
+
+  const toggleTaskNotification = (id: number) => {
+    setTaskNotifications(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleToggleSelectAll = () => {
     if (selectedTaskIds.length === allMasterTaskIds.length) {
       setSelectedTaskIds([]);
+      setTaskNotifications({});
     } else {
       setSelectedTaskIds(allMasterTaskIds);
+      const newNotifs: Record<number, boolean> = {};
+      allMasterTaskIds.forEach(id => { newNotifs[id] = true; });
+      setTaskNotifications(newNotifs);
     }
   };
 
@@ -368,9 +459,14 @@ const Home: React.FC = () => {
     }
 
     if (user?.token) {
-      const success = await assignUserTasks(selectedTaskIds);
+      const tasksPayload = selectedTaskIds.map(id => ({
+        id,
+        notify: taskNotifications[id] ?? true
+      }));
+      const success = await assignUserTasks(tasksPayload);
       if (success) {
         setSelectedTaskIds([]);
+        setTaskNotifications({});
         await Promise.all([fetchUserTasks(), refreshProfile()]);
         setShowSelection(false);
         Alert.alert('Success', 'Your tasks have been assigned!');
@@ -439,6 +535,7 @@ const Home: React.FC = () => {
 
   const renderMasterTask = ({ item }: { item: any }) => {
     const isSelected = selectedTaskIds.includes(item.id);
+    const notifyEnabled = taskNotifications[item.id] ?? true;
     return (
       <Pressable
         onPress={() => toggleTaskSelection(item.id)}
@@ -467,14 +564,22 @@ const Home: React.FC = () => {
             </Text>
           </View>
         </View>
-        <View
-          style={[
-            styles.selectionIndicator,
-            isSelected && styles.selectionIndicatorActive,
-          ]}
-        >
-          {isSelected && <Icon name="check" size={16} color="white" />}
-        </View>
+
+        {isSelected && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleTaskNotification(item.id);
+            }}
+            style={{ marginRight: 8, padding: 4 }}
+          >
+            <Icon
+              name={notifyEnabled ? "notifications-active" : "notifications-off"}
+              size={24}
+              color={notifyEnabled ? colors.primary : colors.subtext}
+            />
+          </Pressable>
+        )}
       </Pressable>
     );
   };
@@ -487,6 +592,17 @@ const Home: React.FC = () => {
       formatTime={formatTime}
       getTimeIcon={getTimeIcon}
       handleUpdateScore={handleUpdateScore}
+      user={user}
+      onEdit={() => {
+        setTaskToEdit(item);
+        setShowCreateModal(true);
+      }}
+      onDelete={async () => {
+        const success = await useTaskStore.getState().deleteCustomTask(item.routine_id);
+        if (!success) {
+          Alert.alert('Error', 'Failed to delete task.');
+        }
+      }}
     />
   );
 
@@ -604,26 +720,45 @@ const Home: React.FC = () => {
     );
   }
 
+  const todayScore = userTasks.reduce((sum, task) => sum + (task.completed_at ? (task.score || 0) : 0), 0);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   return (
     <View style={styles.container}>
+      <View style={[styles.headerContainer, { justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 16 }}>
+          <Image
+            source={Logo}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <View style={[styles.textContainer, { flex: 1 }]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <Animated.Text style={[styles.heading, { opacity: fadeAnim }]}>
+                {greetingText}
+              </Animated.Text>
+            </ScrollView>
+            <Text style={styles.subtitle} numberOfLines={1}>{getGreeting()}! Here are your tasks.</Text>
+          </View>
+        </View>
+
+        <View style={{ alignItems: 'center', backgroundColor: colors.primary + '15', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: colors.primary }}>{todayScore}</Text>
+          <Text style={{ fontSize: 10, fontWeight: '600', color: colors.primary, textTransform: 'uppercase' }}>Today</Text>
+        </View>
+      </View>
+
       <FlatList
         data={sortedUserTasks}
         renderItem={renderDailyTask}
         keyExtractor={item => item.daily_task_id.toString()}
         extraData={userTasks}
-        ListHeaderComponent={() => (
-          <View style={styles.headerContainer}>
-            <Image
-              source={Logo}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-            <View style={styles.textContainer}>
-              <Text style={styles.heading}>Your Daily Tasks</Text>
-              <Text style={styles.subtitle}>Track your progress for today</Text>
-            </View>
-          </View>
-        )}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -652,33 +787,55 @@ const Home: React.FC = () => {
         )}
       />
       {!showSelection && userTasks.length > 0 && (
-        <FAB
-          icon="add"
-          style={{
-            position: 'absolute',
-            margin: 16,
-            right: 0,
-            bottom: 16,
-            backgroundColor: colors.primary,
-          }}
-          color="white"
-          onPress={() => {
-            setShowCreateModal(true);
-          }}
-        />
+        <>
+          <FAB
+            icon="volunteer-activism"
+            style={{
+              position: 'absolute',
+              margin: 16,
+              right: 0,
+              bottom: 88,
+              backgroundColor: colors.primary,
+            }}
+            color="white"
+            onPress={() => setShowSupportModal(true)}
+          />
+          <FAB
+            icon="add"
+            style={{
+              position: 'absolute',
+              margin: 16,
+              right: 0,
+              bottom: 16,
+              backgroundColor: colors.primary,
+            }}
+            color="white"
+            onPress={() => {
+              setShowCreateModal(true);
+            }}
+          />
+        </>
       )}
 
-      {showCreateModal && (
-        <CreateTaskModal
-          visible={showCreateModal}
-          onDismiss={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            handleRefresh();
-            Alert.alert('Success', 'Personal task created!');
-          }}
-        />
-      )}
+      <SupportUsModal
+        visible={showSupportModal}
+        onDismiss={() => setShowSupportModal(false)}
+      />
+
+      <CreateTaskModal
+        visible={showCreateModal}
+        taskToEdit={taskToEdit}
+        onDismiss={() => {
+          setShowCreateModal(false);
+          setTaskToEdit(null);
+        }}
+        onSuccess={() => {
+          setShowCreateModal(false);
+          setTaskToEdit(null);
+          handleRefresh();
+          Alert.alert('Success', taskToEdit ? 'Task updated successfully!' : 'Personal task created!');
+        }}
+      />
     </View>
   );
 };

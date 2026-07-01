@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useThemeColors } from '../../config/styles';
 
 const Coming_soon = () => {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -17,10 +21,10 @@ const Coming_soon = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a', // Sleek dark slate background
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -35,14 +39,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#f8fafc',
+    color: colors.primary,
     marginBottom: 12,
     textAlign: 'center',
     letterSpacing: 1,
   },
   subtitle: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: colors.subtext,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,

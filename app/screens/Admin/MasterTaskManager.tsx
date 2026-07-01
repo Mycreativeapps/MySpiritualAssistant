@@ -13,9 +13,12 @@ import {
   useTheme,
   Divider,
   RadioButton,
+  Checkbox,
 } from 'react-native-paper';
+import { Pressable } from 'react-native';
 import Icon from '@react-native-vector-icons/material-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import moment from 'moment';
 import { useThemeColors } from '../../config/styles';
 import adminService from '../../services/admin';
 import taskService from '../../services/task';
@@ -32,6 +35,11 @@ const MasterTaskManager: React.FC = () => {
   const [taskName, setTaskName] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const [useScheduledTime, setUseScheduledTime] = useState(true);
+  const [notificationTimes, setNotificationTimes] = useState<string[]>([]);
+  const [showNotificationTimePicker, setShowNotificationTimePicker] = useState(false);
+  const [editingNotificationIndex, setEditingNotificationIndex] = useState<number | null>(null);
 
   // Date state
   const [scheduleType, setScheduleType] = useState('daily');
@@ -114,6 +122,7 @@ const MasterTaskManager: React.FC = () => {
     const payload = {
       task_name: taskName,
       scheduled_time: scheduledTime || null,
+      notification_times: notificationTimes,
       options: options,
       ...(start_date_str ? { start_date: start_date_str } : {}),
       ...(end_date_str ? { end_date: end_date_str } : {}),
@@ -143,6 +152,7 @@ const MasterTaskManager: React.FC = () => {
     setShowTimePicker(false);
     setShowStartDatePicker(false);
     setShowEndDatePicker(false);
+    setNotificationTimes([]);
     setOptionsList([{ label: '' }, { label: '' }]);
   };
 
@@ -150,6 +160,12 @@ const MasterTaskManager: React.FC = () => {
     setEditingTask(task);
     setTaskName(task.task_name);
     setScheduledTime(task.scheduled_time || '');
+
+    if (task.notification_times && task.notification_times.length > 0) {
+      setNotificationTimes(task.notification_times);
+    } else {
+      setNotificationTimes([]);
+    }
 
     if (task.start_date && task.end_date) {
       setScheduleType('date_range');
@@ -471,6 +487,149 @@ const MasterTaskManager: React.FC = () => {
                   setShowTimePicker(false);
                 }}
                 onCancel={() => setShowTimePicker(false)}
+              />
+
+              <Divider style={{ marginVertical: 16, backgroundColor: colors.border }} />
+
+              {/* Notification Times Section */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 6 }}>
+                <Icon name="notifications-active" size={18} color={colors.primary} />
+                <Text variant="titleMedium" style={{ fontWeight: 'bold', color: colors.text }}>
+                  Notification Times
+                </Text>
+              </View>
+              <Text variant="bodySmall" style={{ color: colors.subtext, marginBottom: 12 }}>
+                {scheduledTime
+                  ? "Scheduled time is notified by default. Add extra reminders below."
+                  : "Add notification reminders below for this task."}
+              </Text>
+
+              {/* Locked scheduled time chip */}
+              {scheduledTime ? (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  backgroundColor: colors.primary + '18',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: colors.primary + '50',
+                  marginBottom: 8,
+                  gap: 8,
+                }}>
+                  <Icon name="alarm-on" size={16} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 15, flex: 1 }}>
+                    {moment(scheduledTime, 'HH:mm').format('hh:mm A')}
+                  </Text>
+                  <Text style={{ color: colors.primary, fontSize: 11, opacity: 0.7 }}>default</Text>
+                </View>
+              ) : null}
+
+              {/* Extra notification times */}
+              {notificationTimes.map((timeStr, index) => (
+                <View key={index} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                  <Pressable
+                    onPress={() => {
+                      setEditingNotificationIndex(index);
+                      setShowNotificationTimePicker(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      backgroundColor: colors.surface,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      gap: 8,
+                    }}
+                  >
+                    <Icon name="alarm-add" size={16} color={colors.subtext} />
+                    <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>
+                      {moment(timeStr, 'HH:mm').format('hh:mm A')}
+                    </Text>
+                  </Pressable>
+                  <IconButton
+                    icon="close"
+                    size={18}
+                    iconColor={colors.error}
+                    onPress={() => {
+                      const newTimes = [...notificationTimes];
+                      newTimes.splice(index, 1);
+                      setNotificationTimes(newTimes);
+                    }}
+                  />
+                </View>
+              ))}
+
+              {/* Add extra notification time button */}
+              <Pressable
+                onPress={() => {
+                  setEditingNotificationIndex(null);
+                  setShowNotificationTimePicker(true);
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: 10,
+                  marginBottom: 16,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderStyle: 'dashed',
+                  borderColor: colors.border,
+                  gap: 6,
+                }}
+              >
+                <Icon name="add-alarm" size={17} color={colors.subtext} />
+                <Text style={{ color: colors.subtext, fontWeight: '600', fontSize: 13 }}>
+                  {scheduledTime || notificationTimes.length > 0 ? "Add Extra Reminder" : "Add Reminder"}
+                </Text>
+              </Pressable>
+
+              <DateTimePickerModal
+                isVisible={showNotificationTimePicker}
+                mode="time"
+                onConfirm={date => {
+                  const hours = date.getHours().toString().padStart(2, '0');
+                  const minutes = date.getMinutes().toString().padStart(2, '0');
+                  const newTime = `${hours}:${minutes}`;
+
+                  if (newTime === scheduledTime) {
+                    Alert.alert('Duplicate Time', 'This time is already set as the default scheduled time.');
+                    setShowNotificationTimePicker(false);
+                    setEditingNotificationIndex(null);
+                    return;
+                  }
+
+                  const isDuplicate = notificationTimes.some(
+                    (time, index) => time === newTime && index !== editingNotificationIndex
+                  );
+                  
+                  if (isDuplicate) {
+                    Alert.alert('Duplicate Time', 'You have already added this notification time.');
+                    setShowNotificationTimePicker(false);
+                    setEditingNotificationIndex(null);
+                    return;
+                  }
+
+                  const newTimes = [...notificationTimes];
+                  if (editingNotificationIndex !== null) {
+                    newTimes[editingNotificationIndex] = newTime;
+                  } else {
+                    newTimes.push(newTime);
+                  }
+                  setNotificationTimes(newTimes);
+                  setShowNotificationTimePicker(false);
+                  setEditingNotificationIndex(null);
+                }}
+                onCancel={() => {
+                  setShowNotificationTimePicker(false);
+                  setEditingNotificationIndex(null);
+                }}
               />
             </View>
 

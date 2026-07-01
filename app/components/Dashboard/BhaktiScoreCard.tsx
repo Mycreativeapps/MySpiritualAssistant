@@ -7,28 +7,30 @@ import { useThemeColors } from '../../config/styles';
 interface BhaktiScoreCardProps {
   lifetimeScore: number;
   loading?: boolean;
+  enableMilestones?: boolean;
 }
 
 const BhaktiScoreCard: React.FC<BhaktiScoreCardProps> = ({
   lifetimeScore = 0,
   loading = false,
+  enableMilestones = true,
 }) => {
   const colors = useThemeColors();
 
   return (
-    <Card style={styles.card} mode="elevated">
+    <Card style={[styles.card, { backgroundColor: colors.surface }]} mode="elevated">
       <Card.Content>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={[styles.title, { color: colors.primary }]}>
               Bhakti Health Score
             </Text>
-            <Text style={styles.subtitle}>Your spiritual growth status</Text>
+            <Text style={[styles.subtitle, { color: colors.subtext }]}>Your spiritual growth status</Text>
           </View>
         </View>
 
-        <View style={styles.scoreRow}>
-          <View style={styles.scoreItem}>
+        <View style={[styles.scoreRow, { backgroundColor: colors.border + '30' }]}>
+          <View style={[styles.scoreItem, !enableMilestones && { justifyContent: 'center' }]}>
             <View
               style={[
                 styles.iconBox,
@@ -38,24 +40,28 @@ const BhaktiScoreCard: React.FC<BhaktiScoreCardProps> = ({
               <Icon name="stars" size={24} color={colors.primary} />
             </View>
             <View>
-              <Text style={styles.scoreValue}>{lifetimeScore}</Text>
-              <Text style={styles.scoreLabel}>Lifetime Score</Text>
+              <Text style={[styles.scoreValue, { color: colors.text }]}>{lifetimeScore}</Text>
+              <Text style={[styles.scoreLabel, { color: colors.subtext }]}>Lifetime Score</Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          {enableMilestones && (
+            <>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          <View style={styles.scoreItem}>
-            <View style={[styles.iconBox, { backgroundColor: '#4CAF5015' }]}>
-              <Icon name="trending-up" size={24} color="#4CAF50" />
-            </View>
-            <View>
-              <Text style={[styles.scoreValue, { color: '#4CAF50' }]}>
-                {Math.floor(lifetimeScore / 100) + 1}
-              </Text>
-              <Text style={styles.scoreLabel}>Milestones</Text>
-            </View>
-          </View>
+              <View style={styles.scoreItem}>
+                <View style={[styles.iconBox, { backgroundColor: '#4CAF5015' }]}>
+                  <Icon name="trending-up" size={24} color="#4CAF50" />
+                </View>
+                <View>
+                  <Text style={[styles.scoreValue, { color: '#4CAF50' }]}>
+                    {Math.floor(lifetimeScore / 100) + 1}
+                  </Text>
+                  <Text style={[styles.scoreLabel, { color: colors.subtext }]}>Milestones</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
       </Card.Content>
     </Card>
@@ -67,7 +73,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginVertical: 12,
     elevation: 4,
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -85,13 +90,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: '#666',
     marginTop: 2,
   },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -112,18 +115,15 @@ const styles = StyleSheet.create({
   scoreValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
   },
   scoreLabel: {
     fontSize: 10,
-    color: '#999',
     textTransform: 'uppercase',
     fontWeight: '600',
   },
   divider: {
     width: 1,
     height: 30,
-    backgroundColor: '#ddd',
     marginHorizontal: 16,
   },
 });

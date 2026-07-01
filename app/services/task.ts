@@ -4,8 +4,8 @@ export const getMasterTasks = () => {
   return api.get('/tasks/master');
 };
 
-export const assignTasks = (taskIds: number[]) => {
-  return api.post('/tasks/assign', { taskIds });
+export const assignTasks = (tasks: { id: number; notify: boolean }[]) => {
+  return api.post('/tasks/assign', { tasks });
 };
 
 export const getDailyTasks = (date?: string) => {
@@ -22,12 +22,13 @@ export const createRoutine = (payload: {
   options: any;
   start_date?: string;
   end_date?: string;
+  notifications_enabled?: boolean;
 }) => {
   return api.post('/tasks/routines', payload);
 };
 
-export const assignTaskToMentee = (menteeId: string, taskIds: number[]) => {
-  return api.post('/tasks/assign-mentee', { mentee_id: menteeId, taskIds });
+export const assignTaskToMentee = (menteeId: string, tasks: { id: number; notify: boolean }[]) => {
+  return api.post('/tasks/assign-mentee', { mentee_id: menteeId, tasks });
 };
 
 export const createRoutineForMentee = (menteeId: string, payload: any) => {
@@ -35,6 +36,14 @@ export const createRoutineForMentee = (menteeId: string, payload: any) => {
     mentee_id: menteeId,
     ...payload,
   });
+};
+
+export const updateRoutine = (routineId: number, payload: any) => {
+  return api.put(`/tasks/routines/${routineId}`, payload);
+};
+
+export const deleteRoutine = (routineId: number) => {
+  return api.delete(`/tasks/routines/${routineId}`);
 };
 
 export default {
@@ -45,4 +54,6 @@ export default {
   createRoutine,
   assignTaskToMentee,
   createRoutineForMentee,
+  updateRoutine,
+  deleteRoutine,
 };

@@ -88,7 +88,7 @@ const MainApp = () => {
       options: {
         title: 'Home',
         headerStyle: {
-          backgroundColor: AppStyle.light.secondaryLight,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -103,7 +103,7 @@ const MainApp = () => {
       options: {
         title: 'Profile Details',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -125,7 +125,7 @@ const MainApp = () => {
       options: {
         title: 'Mentor Details',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -140,7 +140,7 @@ const MainApp = () => {
       options: {
         title: 'My Mentees',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -155,7 +155,7 @@ const MainApp = () => {
       options: {
         title: 'Task Details',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -170,7 +170,7 @@ const MainApp = () => {
       options: {
         title: 'Coming Soon',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -191,7 +191,7 @@ const MainApp = () => {
       options: {
         title: 'Admin Dashboard',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -207,7 +207,7 @@ const MainApp = () => {
       options: {
         title: 'Manage Tasks',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -223,7 +223,7 @@ const MainApp = () => {
       options: {
         title: 'Manage Admins',
         headerStyle: {
-          backgroundColor: AppStyle.light.primary,
+          backgroundColor: AppStyle.color.header,
         },
         headerTitleStyle: {
           fontSize: 16,
@@ -267,7 +267,7 @@ const App: React.FC<IProps> = (props: IProps) => {
 
   return (
     <NavigationContainer ref={navigationRef} theme={theme}>
-      <StatusBar translucent={true} backgroundColor={AppStyle.light.primary} />
+      <StatusBar translucent={true} backgroundColor={AppStyle.color.header} />
 
       <Stack.Navigator>
         <Stack.Screen

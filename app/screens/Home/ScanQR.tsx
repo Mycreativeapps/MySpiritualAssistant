@@ -19,6 +19,7 @@ const ScanQR: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const colors = useThemeColors();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
 
   const [loading, setLoading] = useState(false);
   const [scanned, setScanned] = useState(false);
@@ -138,7 +139,7 @@ const ScanQR: React.FC = () => {
         <View style={styles.centerContainer}>
           {loading ? (
             <View style={styles.scanFrame}>
-              <ActivityIndicator size={60} color="#00FF00" />
+              <ActivityIndicator size={60} color={colors.success} />
               <Text style={styles.instructionText}>Processing...</Text>
             </View>
           ) : (
@@ -175,7 +176,7 @@ const ScanQR: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black' },
 
   overlay: {
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 30,
     height: 30,
-    borderColor: '#00FF00',
+    borderColor: colors.success,
     borderWidth: 4,
   },
 

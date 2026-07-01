@@ -9,7 +9,6 @@ import {
   Modal,
   View,
   Text,
-  useColorScheme,
   Platform,
   UIManager,
 } from 'react-native';
@@ -38,25 +37,19 @@ import { syncTimezone } from './services/auth';
 import { useUserStore } from './store';
 
 const NavigatorWithInsets: React.FC = () => {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
-
   return (
     <GestureHandlerRootView>
       <NotifierWrapper translucentStatusBar={true} useRNScreensOverlay={true}>
-        <Navigator theme={isDark ? CombinedDarkTheme : CombinedDefaultTheme} />
+        <Navigator theme={CombinedDarkTheme} />
       </NotifierWrapper>
     </GestureHandlerRootView>
   );
 };
 
 const RootNavigation: React.FC = () => {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
-
   return (
     <PaperProvider
-      theme={isDark ? PaperThemeDark : PaperThemeDefault}
+      theme={PaperThemeDark}
       settings={{
         icon: props => <MaterialIcon {...props} />,
       }}

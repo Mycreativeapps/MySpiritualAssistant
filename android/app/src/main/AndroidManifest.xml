@@ -9,6 +9,14 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Exact alarm permissions for on-time local notifications (Notifee TriggerNotification) -->
+    <!-- SCHEDULE_EXACT_ALARM: Android 12+ (API 31) — user must grant via Settings > Alarms & Reminders -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- USE_EXACT_ALARM: Android 13+ (API 33) — auto-granted for timer/reminder apps, no user prompt needed -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Reschedule alarms after device reboot (Notifee handles this internally) -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
 
     <application
       android:name=".MainApplication"

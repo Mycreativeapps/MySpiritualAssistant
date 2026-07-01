@@ -1,20 +1,30 @@
 import { create } from 'zustand';
 import taskService from '../services/task';
+import {
+  scheduleTaskNotifications,
+  cancelTaskNotification,
+  cancelAllTaskNotifications,
+} from '../services/notificationScheduler';
 
 export type MasterTask = {
   id: number;
   task_name: string;
   scheduled_time: string;
+  notification_times?: string[];
   options?: any;
 };
 
 export type DailyTask = {
   daily_task_id: number;
+  routine_id: number;
   task_name: string;
   scheduled_time: string;
+  notification_times?: string[];
   score: number;
   completed_at?: string;
   options?: any;
+  notifications_enabled?: boolean;
+  assigned_by?: string;
 };
 
 type TaskStoreState = {
@@ -25,7 +35,7 @@ type TaskStoreState = {
   error: string | null;
   fetchMasterTasks: () => Promise<void>;
   fetchUserTasks: (date?: string) => Promise<void>;
-  assignUserTasks: (taskIds: number[]) => Promise<boolean>;
+  assignUserTasks: (tasks: { id: number; notify: boolean }[]) => Promise<boolean>;
   updateTaskScore: (taskId: number, score: number) => Promise<void>;
   createCustomTask: (payload: {
     task_name: string;
@@ -33,7 +43,10 @@ type TaskStoreState = {
     options: any;
     start_date?: string;
     end_date?: string;
+    notifications_enabled?: boolean;
   }) => Promise<boolean>;
+  updateCustomTask: (routineId: number, payload: any) => Promise<boolean>;
+  deleteCustomTask: (routineId: number) => Promise<boolean>;
   resetTasks: () => void;
 };
 
@@ -44,14 +57,17 @@ export const useTaskStore = create<TaskStoreState>(set => ({
   hasInitiallyFetched: false,
   error: null,
 
-  resetTasks: () =>
+  resetTasks: () => {
+    // Cancel all locally scheduled notifications on logout/reset
+    cancelAllTaskNotifications();
     set({
       masterTasks: [],
       userTasks: [],
       loading: false,
       hasInitiallyFetched: false,
       error: null,
-    }),
+    });
+  },
 
   fetchMasterTasks: async () => {
     set({ loading: true, error: null });
@@ -72,31 +88,37 @@ export const useTaskStore = create<TaskStoreState>(set => ({
     try {
       const response = await taskService.getDailyTasks(date);
       if (response.data.success) {
+        const tasks = response.data.data;
         set({
-          userTasks: response.data.data,
+          userTasks: tasks,
           loading: false,
           hasInitiallyFetched: true,
         });
+        // Schedule exact-time local notifications for today's pending tasks
+        // Only schedule when fetching today's tasks (no date param = today)
+        if (!date) {
+          scheduleTaskNotifications(tasks);
+        }
       } else {
         set({
           error: response.data.message,
           loading: false,
-          hasInitiallyFetched: true, // Set to true even on error to stop re-fetching loop
+          hasInitiallyFetched: true,
         });
       }
     } catch (err: any) {
       set({
         error: err.message,
         loading: false,
-        hasInitiallyFetched: true, // Set to true even on error to stop re-fetching loop
+        hasInitiallyFetched: true,
       });
     }
   },
 
-  assignUserTasks: async taskIds => {
+  assignUserTasks: async tasks => {
     set({ loading: true, error: null });
     try {
-      const response = await taskService.assignTasks(taskIds);
+      const response = await taskService.assignTasks(tasks);
       if (response.data.success) {
         set({ loading: false });
         return true;
@@ -115,6 +137,8 @@ export const useTaskStore = create<TaskStoreState>(set => ({
     try {
       const response = await taskService.updateTaskScore(taskId, score);
       if (response.data.success) {
+        // Cancel the local scheduled notification for this completed task
+        cancelTaskNotification(taskId);
         // Update local state
         set(state => ({
           userTasks: state.userTasks.map(t =>
@@ -140,6 +164,42 @@ export const useTaskStore = create<TaskStoreState>(set => ({
         // After successfully creating a custom task it should be fetched again to appear on the UI.
         const currentStore = useTaskStore.getState();
         await currentStore.fetchUserTasks();
+        return true;
+      } else {
+        set({ error: response.data.message, loading: false });
+        return false;
+      }
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      return false;
+    }
+  },
+
+  updateCustomTask: async (routineId, payload) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await taskService.updateRoutine(routineId, payload);
+      if (response.data.success) {
+        set({ loading: false });
+        await useTaskStore.getState().fetchUserTasks();
+        return true;
+      } else {
+        set({ error: response.data.message, loading: false });
+        return false;
+      }
+    } catch (err: any) {
+      set({ error: err.message, loading: false });
+      return false;
+    }
+  },
+
+  deleteCustomTask: async (routineId) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await taskService.deleteRoutine(routineId);
+      if (response.data.success) {
+        set({ loading: false });
+        await useTaskStore.getState().fetchUserTasks();
         return true;
       } else {
         set({ error: response.data.message, loading: false });

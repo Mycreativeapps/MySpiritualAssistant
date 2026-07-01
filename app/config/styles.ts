@@ -80,7 +80,7 @@ const light = {
   secondary: palette.secondaryLight,
   background: '#F5F7FA',
   surface: palette.white,
-  header: palette.primaryLight,
+  header: palette.secondaryLight,
   text: palette.black,
   subtext: palette.grey,
   border: '#E1E8ED',
@@ -115,7 +115,7 @@ const dark = {
   secondary: palette.secondaryDark,
   background: '#17212B',
   surface: '#1E2B38',
-  header: palette.primaryDark,
+  header: palette.secondaryLight,
   text: palette.white,
   subtext: palette.grey70,
   border: '#232E3C',
@@ -157,7 +157,8 @@ const themeColor = new Proxy({} as typeof light & typeof palette, {
   get(_target, key: string) {
     const { Appearance } = require('react-native');
     const scheme = Appearance.getColorScheme();
-    const themeTokens = scheme === 'dark' ? dark : light;
+    const themeTokens = dark;
+    // const themeTokens = scheme === 'dark' ? dark : light;
     // Theme token first (e.g. primary, background, surface, text…)
     // then fall back to palette static values (e.g. white, black, green…)
     return (themeTokens as any)[key] ?? (palette as any)[key];

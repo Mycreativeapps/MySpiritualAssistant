@@ -2,9 +2,9 @@ import axios from 'axios';
 import NavigationService from '../navigation/NavigationService';
 
 export const API_BASE_URL = () => {
-  // return 'http://10.148.47.77:5000/api';
-  // return 'https://myspiritualassistant.onrender.com/api';
   return 'https://api.myspiritualassistant.com/api';
+  // return 'https://myspiritualassistant.onrender.com/api';
+  // return 'http://192.168.1.20:5000/api';
 };
 
 export const Token = () => {

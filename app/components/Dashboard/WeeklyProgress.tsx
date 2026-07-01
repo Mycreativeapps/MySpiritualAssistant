@@ -33,28 +33,55 @@ const WeeklyProgress: React.FC<WeeklyProgressProps> = ({
   const maxScore = Math.max(...last7Days.map(d => d.value), 10);
   const chartHeight = 120;
 
+  const getBarColor = (value: number, max: number, isToday: boolean) => {
+    if (value === 0) return colors.subtext + '55'; // visible muted color for empty bars
+    const ratio = value / max;
+    if (ratio >= 0.75) return colors.primary;
+    if (ratio >= 0.4) return '#FFA726'; // Orange
+    return colors.error;
+  };
+
+  const getBarOpacity = (value: number) => (value === 0 ? 0.5 : 1);
+
   return (
-    <Card style={styles.card} mode="elevated">
+    <Card style={[styles.card, { backgroundColor: colors.surface }]} mode="elevated">
       <Card.Content>
         <Text style={[styles.title, { color: colors.primary }]}>
           Weekly Progress
         </Text>
-        <Text style={styles.subtitle}>Scores from the last 7 days</Text>
+        <Text style={[styles.subtitle, { color: colors.subtext }]}>Scores from the last 7 days</Text>
 
         <View style={styles.chartContainer}>
           {last7Days.map((day, index) => {
             const barHeight = (day.value / maxScore) * chartHeight;
             return (
               <View key={index} style={styles.barWrapper}>
-                <View style={styles.barBackground}>
+                {/* Score label above bar */}
+                <Text
+                  style={[
+                    styles.scoreLabel,
+                    { color: day.value > 0 ? getBarColor(day.value, maxScore, day.isToday) : 'transparent' },
+                  ]}
+                >
+                  {day.value > 0 ? day.value : ''}
+                </Text>
+                <View
+                  style={[
+                    styles.barBackground,
+                    {
+                      backgroundColor: colors.border + '25',
+                      borderWidth: 1,
+                      borderColor: colors.border + '40',
+                    },
+                  ]}
+                >
                   <View
                     style={[
                       styles.barFill,
                       {
-                        height: barHeight,
-                        backgroundColor: day.isToday
-                          ? colors.primary
-                          : colors.primary + '60',
+                        height: day.value === 0 ? 4 : barHeight,
+                        backgroundColor: getBarColor(day.value, maxScore, day.isToday),
+                        opacity: getBarOpacity(day.value),
                       },
                     ]}
                   />
@@ -62,6 +89,7 @@ const WeeklyProgress: React.FC<WeeklyProgressProps> = ({
                 <Text
                   style={[
                     styles.dayLabel,
+                    { color: colors.subtext },
                     day.isToday && {
                       color: colors.primary,
                       fontWeight: 'bold',
@@ -78,13 +106,15 @@ const WeeklyProgress: React.FC<WeeklyProgressProps> = ({
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.dot, { backgroundColor: colors.primary }]} />
-            <Text style={styles.legendText}>Today</Text>
+            <Text style={[styles.legendText, { color: colors.subtext }]}>Good</Text>
           </View>
           <View style={styles.legendItem}>
-            <View
-              style={[styles.dot, { backgroundColor: colors.primary + '60' }]}
-            />
-            <Text style={styles.legendText}>Past Days</Text>
+            <View style={[styles.dot, { backgroundColor: '#FFA726' }]} />
+            <Text style={[styles.legendText, { color: colors.subtext }]}>Average</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: colors.error }]} />
+            <Text style={[styles.legendText, { color: colors.subtext }]}>Low</Text>
           </View>
         </View>
       </Card.Content>
@@ -97,7 +127,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     marginBottom: 24,
     elevation: 4,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 20,
@@ -106,7 +135,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 12,
-    color: '#666',
     marginTop: 2,
     marginBottom: 24,
   },
@@ -124,7 +152,6 @@ const styles = StyleSheet.create({
   barBackground: {
     width: 14,
     height: 120,
-    backgroundColor: '#f0f0f0',
     borderRadius: 7,
     justifyContent: 'flex-end',
     overflow: 'hidden',
@@ -133,10 +160,15 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 7,
   },
+  scoreLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 3,
+    textAlign: 'center',
+  },
   dayLabel: {
     marginTop: 8,
     fontSize: 12,
-    color: '#999',
   },
   legend: {
     flexDirection: 'row',
@@ -156,7 +188,6 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 11,
-    color: '#666',
     fontWeight: '600',
   },
 });

@@ -248,7 +248,7 @@ const createStyles = (colors: ThemeColors) =>
     dailyTaskCard: {
       backgroundColor: colors.surface,
       borderRadius: 24,
-      padding: 20,
+      padding: 10,
       marginBottom: 16,
       borderWidth: 1,
       borderColor: colors.border + '20',
@@ -364,7 +364,6 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.border + '05',
     },
     completedTaskName: {
-      textDecorationLine: 'line-through',
       color: colors.subtext,
     },
     emptyContainer: {

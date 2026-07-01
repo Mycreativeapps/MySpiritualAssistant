@@ -55,7 +55,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 <Icon
                   name="calendar-plus-o"
                   size={20}
-                  color={AppStyle.light.subtext}
+                  color={AppStyle.color.subtext}
                   onPress={onPress}
                 />
               )}
@@ -63,7 +63,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
           }
           style={DateInputStyle}
           placeholder={placeholder}
-          placeholderTextColor={AppStyle.light.subtext}
+          placeholderTextColor={AppStyle.color.subtext}
           value={dateValue}
           editable={false}
           mode={mode}

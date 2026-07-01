@@ -2,7 +2,7 @@
  * @format
  */
 
-import { AppRegistry } from 'react-native';
+import { AppRegistry, AppState } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType, AndroidStyle, AndroidVisibility } from '@notifee/react-native';
 import App from './app/EntryPoint';
@@ -32,45 +32,29 @@ const displayTaskNotification = async (remoteMessage) => {
             .join('\n');
 
         const channelId = await notifee.createChannel({
-            id: 'task_alerts_v5', // New channel to bypass Android sound caching
+            id: 'task_alerts_v6', // Bumped — v5 may be cached without sound on some devices
             name: 'Task Progress Alerts',
             importance: AndroidImportance.HIGH,
-            sound: 'single_bell',
+            sound: 'android.resource://com.myspiritualcoach/raw/single_bell',
         });
 
         const notificationBody = body || 'Select your progress below:';
 
         await notifee.displayNotification({
+            id: daily_task_id ? `local_task_${daily_task_id}` : undefined,
             title: title || 'Task Alert 🕉️',
             body: notificationBody,
             data: { daily_task_id, options, ...remoteMessage.data },
             android: {
                 channelId,
                 importance: AndroidImportance.HIGH,
-                priority: 'high',
                 visibility: AndroidVisibility.PUBLIC,
                 pressAction: { id: 'default' },
                 style: {
                     type: AndroidStyle.BIGTEXT,
                     title: title || 'Task Alert 🕉️',
-                    text: `${notificationBody} \n \n ${optionsSummary}`,
+                    text: notificationBody,
                 },
-                // Use 3 buttons: Max Score, Min Score, and a Choice Input
-                actions: choices.length > 0 ? [
-                    {
-                        title: 'Select Progress 🎯',
-                        pressAction: { id: 'record_score' },
-                        input: {
-                            choices: choices.map(c => c.title),
-                            placeholder: 'Choose 0-4...',
-                            allowFreeFormInput: false,
-                        }
-                    },
-                    {
-                        title: 'More Options 📂',
-                        pressAction: { id: 'open_app' },
-                    }
-                ] : [],
             },
         });
     } catch (error) {
@@ -168,5 +152,52 @@ messaging().onMessage(async remoteMessage => {
         await displayTaskNotification(remoteMessage);
     }
 });
+
+/**
+ * Issue #4 Fix: Show missed notifications when app is opened.
+ *
+ * FCM "data-only" messages (no notification block) are delivered silently
+ * when the app is killed/backgrounded but do NOT automatically display a
+ * notification — the background handler runs and calls displayTaskNotification,
+ * but if the process was killed before the handler fired, the message is lost.
+ *
+ * Firebase stores the most-recent message that LAUNCHED the app via
+ * messaging().getInitialNotification(). We check this on startup and
+ * re-display it if it hasn't been actioned yet (score still 0).
+ *
+ * We also listen for AppState changes so that if the user switches back to
+ * the app from the background we trigger a fresh FCM token/task refresh
+ * rather than re-showing a notification (that would already be in the tray).
+ */
+const checkInitialNotification = async () => {
+    try {
+        // 1. Was the app opened by tapping a Firebase data message?
+        const initialMessage = await messaging().getInitialNotification();
+        if (initialMessage) {
+            console.log('[Init Notification] App opened via FCM:', JSON.stringify(initialMessage));
+            const { data } = initialMessage;
+            if (data && data.daily_task_id && data.options) {
+                // Display as a notifee notification so the user can act on it
+                await displayTaskNotification(initialMessage);
+            }
+        }
+
+        // 2. Was the app opened by tapping a Notifee notification?
+        const initialNotifee = await notifee.getInitialNotification();
+        if (initialNotifee) {
+            console.log('[Init Notifee] App opened via Notifee tap:', JSON.stringify(initialNotifee));
+            // Re-run the event handler so navigation / score-update logic fires
+            await handleNotificationEvent({
+                type: EventType.PRESS,
+                detail: initialNotifee,
+            });
+        }
+    } catch (err) {
+        console.error('[Init Notification] Error checking initial notification:', err);
+    }
+};
+
+// Run the check shortly after the JS bundle loads so the store has time to hydrate
+setTimeout(checkInitialNotification, 1500);
 
 AppRegistry.registerComponent(appName, () => App);

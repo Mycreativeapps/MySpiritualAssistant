@@ -62,12 +62,7 @@ const MenteesList: React.FC = () => {
   }, [mentees, searchQuery]);
 
   const renderMentee = ({ item }: { item: Mentee }) => {
-    const initials = item.name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+    const initials = item.name.trim().charAt(0).toUpperCase();
 
     return (
       <Pressable
@@ -102,10 +97,10 @@ const MenteesList: React.FC = () => {
             <Text style={styles.subText}>{item.email}</Text>
             <View style={styles.badgeContainer}>
               <View
-                style={[styles.scoreBadge, { backgroundColor: '#FFD70015' }]}
+                style={[styles.scoreBadge, { backgroundColor: colors.primary + '15' }]}
               >
-                <Icon name="stars" size={14} color="#DAA520" />
-                <Text style={[styles.badgeText, { color: '#B8860B' }]}>
+                <Icon name="stars" size={14} color={colors.primary} />
+                <Text style={[styles.badgeText, { color: colors.primary }]}>
                   {item.lifetime_score || 0} Points
                 </Text>
               </View>
@@ -239,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#FFD70040',
+    borderColor: AppStyle.color.primary + '40',
   },
   badgeText: {
     fontSize: 11,

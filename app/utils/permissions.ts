@@ -33,6 +33,11 @@ export const requestAllPermissions = async () => {
       permissions.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
     }
 
+    // Android 12 (API 31) and above require SCHEDULE_EXACT_ALARM for exact notifications
+    if (Platform.OS === 'android' && Platform.Version >= 31) {
+      permissions.push('android.permission.SCHEDULE_EXACT_ALARM');
+    }
+
     console.log('[Permissions] Requesting multiple permissions:', permissions);
     
     const granted = await PermissionsAndroid.requestMultiple(permissions);
@@ -44,6 +49,9 @@ export const requestAllPermissions = async () => {
       notifications: (Platform.OS === 'android' && Platform.Version >= 33)
         ? granted[PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS] === PermissionsAndroid.RESULTS.GRANTED
         : true, // Assume true for older versions as it was default
+      exactAlarm: (Platform.OS === 'android' && Platform.Version >= 31)
+        ? granted['android.permission.SCHEDULE_EXACT_ALARM'] === PermissionsAndroid.RESULTS.GRANTED
+        : true,
     };
 
     console.log('[Permissions] Final results:', result);

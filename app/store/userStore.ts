@@ -12,6 +12,7 @@ export type User = {
   token?: string;
   phone_number?: string;
   gender?: string;
+  year_of_birth?: number;
   timezone?: string;
   refreshToken?: string;
   profile_url?: string;
@@ -68,6 +69,7 @@ export const useUserStore = create<UserStoreState>()(
                   email: stats.email || currentUser.email,
                   phone_number: stats.phone_number || currentUser.phone_number,
                   gender: stats.gender || currentUser.gender,
+                  year_of_birth: stats.year_of_birth || currentUser.year_of_birth,
                   timezone: stats.timezone || currentUser.timezone,
                   profile_url: stats.profile_url || currentUser.profile_url,
                   role: stats.role || currentUser.role,

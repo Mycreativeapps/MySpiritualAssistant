@@ -7,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   Platform,
+  InteractionManager,
 } from 'react-native';
 import {
   Text,
@@ -30,6 +31,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import QRCode from 'react-native-qrcode-svg';
 import Share from 'react-native-share';
+import EditProfileModal from './EditProfileModal';
 
 const About: React.FC = () => {
   console.log('QRCode', QRCode);
@@ -44,6 +46,7 @@ const About: React.FC = () => {
   const [qrVisible, setQrVisible] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const qrRef = useRef<any>(null);
   const {
@@ -54,11 +57,20 @@ const About: React.FC = () => {
     loading,
   } = useUserStore();
 
-  // Use useEffect for initial mount to be as fast as AdminDashboard
+  const [isTransitionReady, setIsTransitionReady] = useState(false);
+
+  // Defer loading and rendering until transition completes
   useEffect(() => {
-    refreshProfile();
-    fetchScoreHistory();
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsTransitionReady(true);
+      refreshProfile();
+      fetchScoreHistory();
+    });
+
+    return () => task.cancel();
   }, []);
+
+
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -137,7 +149,13 @@ const About: React.FC = () => {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
-        onPress: () => {
+        onPress: async () => {
+          try {
+            const authService = await import('../../services/auth');
+            await authService.logout(user?.refreshToken);
+          } catch (e) {
+            console.error('Logout API failed:', e);
+          }
           clearUser();
           NavigationService.replace('Auth', { screen: 'Login' });
         },
@@ -212,11 +230,7 @@ const About: React.FC = () => {
 
   const userInitials = useMemo(() => {
     if (!user?.name) return 'U';
-    const names = user.name.split(' ');
-    if (names.length >= 2) {
-      return (names[0][0] + names[1][0]).toUpperCase();
-    }
-    return names[0][0].toUpperCase();
+    return user.name.trim().charAt(0).toUpperCase();
   }, [user?.name]);
 
   const maskEmail = (email: string) => {
@@ -259,6 +273,14 @@ const About: React.FC = () => {
       </View>
     </View>
   );
+
+  if (!isTransitionReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -318,9 +340,6 @@ const About: React.FC = () => {
           </Pressable>
         </View>
         <Text style={styles.userName}>{user?.name || 'User'}</Text>
-        <Text style={styles.userEmail}>
-          {user?.email ? maskEmail(user.email) : 'email@example.com'}
-        </Text>
 
         <Portal>
           <Modal
@@ -393,13 +412,22 @@ const About: React.FC = () => {
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           )}
-          {/* <BhaktiScoreCard lifetimeScore={profileStats?.lifetime_score || 0} />
-          <WeeklyProgress history={scoreHistory || []} /> */}
+          {/* <BhaktiScoreCard lifetimeScore={profileStats?.lifetime_score || 0} enableMilestones={false} /> */}
+          <WeeklyProgress history={scoreHistory || []} />
         </View>
 
         {/* Account Details Section - Always shown immediately like Admin cards */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Details</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Account Details</Text>
+            <IconButton 
+              icon="edit" 
+              size={20} 
+              iconColor={colors.primary} 
+              onPress={() => setShowEditModal(true)} 
+              style={{ margin: 0, backgroundColor: colors.primary + '15' }}
+            />
+          </View>
           <View style={styles.infoCard}>
             <Pressable
               onPress={() => NavigationService.navigate('MenteesList')}
@@ -457,7 +485,7 @@ const About: React.FC = () => {
                   label="Gender"
                   value={
                     user?.gender
-                      ? `${user.gender === 'male' ? 'Prabhu' : 'Mathaji'}`
+                      ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1).toLowerCase()
                       : 'Not provided'
                   }
                 />
@@ -466,16 +494,21 @@ const About: React.FC = () => {
                 <InfoRow
                   icon="email"
                   label="Email"
-                  value={maskEmail(user?.email || '')}
-                  isMasked={true}
+                  value={user?.email || ''}
+                />
+              </View>
+              <View style={{ width: '100%', marginBottom: 12 }}>
+                <InfoRow
+                  icon="calendar-today"
+                  label="Age"
+                  value={user?.year_of_birth ? `${new Date().getFullYear() - user.year_of_birth} years` : 'Not provided'}
                 />
               </View>
               <View style={{ width: '100%' }}>
                 <InfoRow
                   icon="phone"
                   label="Phone"
-                  value={maskPhone(user?.phone_number || '')}
-                  isMasked={true}
+                  value={user?.phone_number || ''}
                 />
               </View>
             </View>
@@ -490,32 +523,34 @@ const About: React.FC = () => {
             marginBottom: 24,
           }}
         >
-          {/* <Button
-            mode="contained"
-            onPress={async () => {
-              const api = (await import('../../services/Config')).default;
-              try {
-                const response = await api.post('/auth/test-notification');
-                if (response.data.success) {
-                  Alert.alert('Sent', 'A test notification has been sent');
+          {user?.role === 'admin' && (
+            <Button
+              mode="contained"
+              onPress={async () => {
+                const api = (await import('../../services/Config')).default;
+                try {
+                  const response = await api.post('/auth/test-notification');
+                  if (response.data.success) {
+                    Alert.alert('Sent', 'A test notification has been sent');
+                  }
+                } catch (error: any) {
+                  Alert.alert(
+                    'Error',
+                    error.response?.data?.message || 'Failed to send notification',
+                  );
                 }
-              } catch (error: any) {
-                Alert.alert(
-                  'Error',
-                  error.response?.data?.message || 'Failed to send notify',
-                );
-              }
-            }}
-            style={{
-              backgroundColor: colors.primary,
-              flex: 1,
-              borderRadius: 12,
-            }}
-            labelStyle={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}
-            icon="notifications-active"
-          >
-            Test Notify
-          </Button> */}
+              }}
+              style={{
+                backgroundColor: colors.primary,
+                flex: 1,
+                borderRadius: 12,
+              }}
+              labelStyle={{ color: 'white', fontSize: 13, fontWeight: 'bold' }}
+              icon="notifications-active"
+            >
+              Test Notification
+            </Button>
+          )}
 
           <Button
             mode="outlined"
@@ -532,6 +567,11 @@ const About: React.FC = () => {
           </Button>
         </View>
       </View>
+
+      <EditProfileModal
+        visible={showEditModal}
+        onDismiss={() => setShowEditModal(false)}
+      />
     </ScrollView>
   );
 };

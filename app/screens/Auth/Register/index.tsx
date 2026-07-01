@@ -27,6 +27,7 @@ const Register: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [gender, setGender] = useState('male');
+  const [yearOfBirth, setYearOfBirth] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -38,6 +39,7 @@ const Register: React.FC = () => {
     phone: '',
     password: '',
     otp: '',
+    yearOfBirth: '',
   });
 
   const validateEmail = () => {
@@ -51,7 +53,7 @@ const Register: React.FC = () => {
 
   const validateAll = () => {
     let valid = true;
-    const newErrors = { name: '', email: '', phone: '', password: '', otp: '' };
+    const newErrors = { name: '', email: '', phone: '', password: '', otp: '', yearOfBirth: '' };
 
     if (!name || name.length < 3) {
       newErrors.name = 'Name must be at least 3 characters';
@@ -71,6 +73,18 @@ const Register: React.FC = () => {
     if (!password || password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
       valid = false;
+    }
+
+    if (!yearOfBirth || yearOfBirth.length !== 4 || isNaN(Number(yearOfBirth))) {
+      newErrors.yearOfBirth = 'Valid 4-digit year of birth is required';
+      valid = false;
+    } else {
+      const yob = Number(yearOfBirth);
+      const currentYear = new Date().getFullYear();
+      if (yob < 1900 || yob > currentYear) {
+        newErrors.yearOfBirth = `Year must be between 1900 and ${currentYear}`;
+        valid = false;
+      }
     }
 
     if (!isVerified) {
@@ -163,6 +177,7 @@ const Register: React.FC = () => {
         phone_number: `${countryCode}${phone}`,
         password,
         gender,
+        year_of_birth: Number(yearOfBirth),
         timezone:
           Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata',
         fcm_token: fcm_token || null,
@@ -353,6 +368,46 @@ const Register: React.FC = () => {
               />
               <HelperText type="error" visible={!!errors.password}>
                 {errors.password}
+              </HelperText>
+
+              <Text style={{ marginTop: 12, marginBottom: 8, color: colors.text, fontWeight: '600' }}>Gender</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 16 }}>
+                <Button 
+                  mode={gender === 'male' ? 'contained' : 'outlined'} 
+                  onPress={() => setGender('male')} 
+                  style={{ flex: 1, marginRight: 4, borderRadius: 8 }}
+                >
+                  Male
+                </Button>
+                <Button 
+                  mode={gender === 'female' ? 'contained' : 'outlined'} 
+                  onPress={() => setGender('female')} 
+                  style={{ flex: 1, marginHorizontal: 4, borderRadius: 8 }}
+                >
+                  Female
+                </Button>
+                <Button 
+                  mode={gender === 'other' ? 'contained' : 'outlined'} 
+                  onPress={() => setGender('other')} 
+                  style={{ flex: 1, marginLeft: 4, borderRadius: 8 }}
+                >
+                  Other
+                </Button>
+              </View>
+
+              <TextInput
+                label="Year of Birth"
+                value={yearOfBirth}
+                onChangeText={setYearOfBirth}
+                mode="outlined"
+                keyboardType="number-pad"
+                maxLength={4}
+                style={styles.input}
+                error={!!errors.yearOfBirth}
+                left={<TextInput.Icon icon="calendar-today" />}
+              />
+              <HelperText type="error" visible={!!errors.yearOfBirth}>
+                {errors.yearOfBirth}
               </HelperText>
 
               <Button
