@@ -8,11 +8,11 @@ const { sendNotification } = require('../services/notificationService');
  */
 
 exports.createMasterTask = async (req, res) => {
-    const { task_name, scheduled_time, options } = req.body;
+    const { task_name, scheduled_time, notification_times, options } = req.body;
     try {
         const result = await db.query(
-            'INSERT INTO master_tasks (task_name, scheduled_time, options, updated_by) VALUES ($1, $2, $3, $4) RETURNING *',
-            [task_name, scheduled_time, JSON.stringify(options), req.user.id]
+            'INSERT INTO master_tasks (task_name, scheduled_time, notification_times, options, updated_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [task_name, scheduled_time, JSON.stringify(notification_times || []), JSON.stringify(options), req.user.id]
         );
         responseHandler.success(res, 'Master task created successfully', result.rows[0], 201);
     } catch (err) {
@@ -23,18 +23,19 @@ exports.createMasterTask = async (req, res) => {
 
 exports.updateMasterTask = async (req, res) => {
     const { id } = req.params;
-    const { task_name, scheduled_time, options, is_active } = req.body;
+    const { task_name, scheduled_time, notification_times, options, is_active } = req.body;
     try {
         const result = await db.query(
             `UPDATE master_tasks 
              SET task_name = COALESCE($1, task_name), 
                  scheduled_time = COALESCE($2, scheduled_time), 
-                 options = COALESCE($3, options), 
-                 is_active = COALESCE($4, is_active),
+                 notification_times = COALESCE($3, notification_times),
+                 options = COALESCE($4, options), 
+                 is_active = COALESCE($5, is_active),
                  updated_at = NOW(),
-                 updated_by = $5 
-             WHERE id = $6 RETURNING *`,
-            [task_name, scheduled_time, options ? JSON.stringify(options) : null, is_active, req.user.id, id]
+                 updated_by = $6 
+             WHERE id = $7 RETURNING *`,
+            [task_name, scheduled_time, notification_times ? JSON.stringify(notification_times) : null, options ? JSON.stringify(options) : null, is_active, req.user.id, id]
         );
         if (result.rows.length === 0) return responseHandler.error(res, 'Task not found', 404);
         responseHandler.success(res, 'Master task updated successfully', result.rows[0]);
