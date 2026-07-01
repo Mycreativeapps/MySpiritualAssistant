@@ -18,391 +18,427 @@ async function setupBhaktiTasks() {
 
         const tasks = [
             {
-                task_name: "Wake up",
+                task_name: 'Wake up',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "After 7am",
-                    3: "5.30–7am",
-                    6: "4.30–5.30am",
-                    8: "3.30–4.30am",
-                    10: "Before 3.30am"
+                    1: 'After 7am',
+                    3: '5:30-7am',
+                    6: '4:30-5:30am',
+                    8: '3:30-4:30am',
+                    10: 'Before 3:30am'
                 }
             },
             {
-                task_name: "Chanting rounds",
-                scheduled_time: "4:30:00",
+                task_name: 'Chanting rounds',
+                scheduled_time: '4:30:00',
+                notification_times: [],
                 options: {
-                    1: "less than 30 rounds",
-                    3: "30-60 rounds",
-                    6: "60-90 rounds",
-                    8: "90-120 rounds",
-                    10: "120-150 rounds"
+                    1: 'less than 30 rounds',
+                    3: '30-60 rounds',
+                    6: '60-90 rounds',
+                    8: '90-120 rounds',
+                    10: '120-150 rounds'
                 }
             },
             {
-                task_name: "Cooking Prasadam",
+                task_name: 'Cooking Prasadam',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 times a day",
-                    3: "1 time a day",
-                    6: "2 times a day",
-                    8: "3 times a day",
-                    10: "4 times a day"
+                    1: '0 times a day',
+                    3: '1 time a day',
+                    6: '2 times a day',
+                    8: '3 times a day',
+                    10: '4 times a day'
                 }
             },
             {
-                task_name: "Honouring Prasadam",
+                task_name: 'Honouring Prasadam',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "No Prasadham",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Only Prasadham"
+                    1: 'No Prasadham',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Only Prasadham'
                 }
             },
             {
-                task_name: "Managala aarati",
-                scheduled_time: "4:00:00",
+                task_name: 'Managala aarati',
+                scheduled_time: '4:00:00',
+                notification_times: [],
                 options: {
-                    1: "After 7am",
-                    3: "6-7am",
-                    6: "5-6am",
-                    8: "4.30-5am",
-                    10: "4-4.30am"
+                    1: 'After 7am',
+                    3: '6-7am',
+                    6: '5-6am',
+                    8: '4.30-5am',
+                    10: '4-4.30am'
                 }
             },
             {
-                task_name: "Tulasi aarati",
+                task_name: 'Tulasi aarati',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Narasimha aarati",
+                task_name: 'Narasimha aarati',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Sandhya aarati",
-                scheduled_time: "17:00:00",
+                task_name: 'Sandhya aarati',
+                scheduled_time: '17:00:00',
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Guru aarati",
+                task_name: 'Guru aarati',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Lectures",
-                scheduled_time: "10:00:00",
+                task_name: 'Lectures',
+                scheduled_time: '10:00:00',
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "30mins-1hour",
-                    6: "1hour-2hour",
-                    8: "2hours-2.30hours",
-                    10: "3 hours a day"
+                    1: '0 hours a day',
+                    3: '30mins-1hour',
+                    6: '1hour-2hour',
+                    8: '2hours-2.30hours',
+                    10: '3 hours a day'
                 }
             },
             {
-                task_name: "Book Reading",
-                scheduled_time: "8:00:00",
+                task_name: 'Book Reading',
+                scheduled_time: '08:00:00',
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "30mins-1hour",
-                    6: "1hour-2hour",
-                    8: "2hours-3hours",
-                    10: "3hours-4hours"
+                    1: '0 hours a day',
+                    3: '30mins-1hour',
+                    6: '1hour-2hour',
+                    8: '2hours-3hours',
+                    10: '3hours-4hours'
                 }
             },
             {
-                task_name: "Excercises",
+                task_name: 'Excercises',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "30mins-1hour",
-                    6: "1hour-2hour",
-                    8: "2hours-2.30hours",
-                    10: "3 hours a day"
+                    1: '0 hours a day',
+                    3: '30mins-1hour',
+                    6: '1hour-2hour',
+                    8: '2hours-2.30hours',
+                    10: '3 hours a day'
                 }
             },
             {
-                task_name: "No.of classes attended",
+                task_name: 'No.of classes attended',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "None",
-                    3: "1 Class",
-                    6: "2 Classes",
-                    8: "3 Classes",
-                    10: "5 Classes"
+                    1: 'None',
+                    3: '1 Class',
+                    6: '2 Classes',
+                    8: '3 Classes',
+                    10: '5 Classes'
                 }
             },
             {
-                task_name: "Devotees Association",
+                task_name: 'Devotees Association',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "2 hours a day",
-                    6: "4 hours a day",
-                    8: "6 hours a day",
-                    10: "8 hours a day"
+                    1: '0 hours a day',
+                    3: '2 hours a day',
+                    6: '4 hours a day',
+                    8: '6 hours a day',
+                    10: '8 hours a day'
                 }
             },
             {
-                task_name: "Abishekam",
+                task_name: 'Abishekam',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Sleep",
-                scheduled_time: "20:00:00",
+                task_name: 'Sleep',
+                scheduled_time: '20:00:00',
+                notification_times: [],
                 options: {
-                    1: "11:00 PM",
-                    3: "10:00 PM",
-                    6: "9:00 PM",
-                    8: "8:30 PM",
-                    10: "8:00 PM"
+                    1: '11:00 PM',
+                    3: '10:00 PM',
+                    6: '9:00 PM',
+                    8: '8:30 PM',
+                    10: '8:00 PM'
                 }
             },
             {
-                task_name: "Fasting",
-                scheduled_time: "4:00:00",
+                task_name: 'Fasting',
+                scheduled_time: '04:00:00',
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Festival",
+                task_name: 'Festival',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0",
-                    3: "1",
-                    6: "2",
-                    8: "3",
-                    10: "4"
+                    1: '0',
+                    3: '1',
+                    6: '2',
+                    8: '3',
+                    10: '4'
                 }
             },
             {
-                task_name: "Temple Visit",
+                task_name: 'Temple Visit',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Complaining / resistant",
-                    3: "Mechanical",
-                    6: "Neutral",
-                    8: "Grateful",
-                    10: "Joyful and surrendered"
+                    1: 'Complaining / resistant',
+                    3: 'Mechanical',
+                    6: 'Neutral',
+                    8: 'Grateful',
+                    10: 'Joyful and surrendered'
                 }
             },
             {
-                task_name: "Book Distribution",
+                task_name: 'Book Distribution',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "None",
-                    3: "Casual interaction",
-                    6: "Offered small support",
-                    8: "Meaningful encouragement",
-                    10: "Deep supportive conversation"
+                    1: 'None',
+                    3: 'Casual interaction',
+                    6: 'Offered small support',
+                    8: 'Meaningful encouragement',
+                    10: 'Deep supportive conversation'
                 }
             },
             {
-                task_name: "Pravachan/giving classes",
+                task_name: 'Pravachan/giving classes',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "1 hour a day",
-                    6: "2 hours a day",
-                    8: "3 hours day",
-                    10: "4 hours a day"
+                    1: '0 hours a day',
+                    3: '1 hour a day',
+                    6: '2 hours a day',
+                    8: '3 hours day',
+                    10: '4 hours a day'
                 }
             },
             {
-                task_name: "Vaishanava/Sadu Seva",
+                task_name: 'Vaishanava/Sadu Seva',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "1-6 hours a day",
-                    6: "6-12 hours a day",
-                    8: "12-18 hours a day",
-                    10: "18-24 hours day"
+                    1: '0 hours a day',
+                    3: '1-6 hours a day',
+                    6: '6-12 hours a day',
+                    8: '12-18 hours a day',
+                    10: '18-24 hours day'
                 }
             },
             {
-                task_name: "Nitya anusandhanam",
-                scheduled_time: "7:00:00",
+                task_name: 'Nitya anusandhanam',
+                scheduled_time: '07:00:00',
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Jagran",
+                task_name: 'Jagran',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Sayana Aarati",
-                scheduled_time: "19:45:00",
+                task_name: 'Sayana Aarati',
+                scheduled_time: '19:45:00',
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "charity",
+                task_name: 'charity',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Screen Time",
+                task_name: 'Screen Time',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "4+ hours a day",
-                    3: "3 hours a day",
-                    6: "2 hours a day",
-                    8: "1 hour a day",
-                    10: "0 hour a day"
+                    1: '4+ hours a day',
+                    3: '3 hours a day',
+                    6: '2 hours a day',
+                    8: '1 hour a day',
+                    10: '0 hour a day'
                 }
             },
             {
-                task_name: "Sevas:Garland/Cleaning alter",
+                task_name: 'Sevas:Garland/Cleaning alter',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "1 hour a day",
-                    6: "2 hours a day",
-                    8: "3 hours day",
-                    10: "4 hours a day"
+                    1: '0 hours a day',
+                    3: '1 hour a day',
+                    6: '2 hours a day',
+                    8: '3 hours day',
+                    10: '4 hours a day'
                 }
             },
             {
-                task_name: "Meditation",
+                task_name: 'Meditation',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "1 hour a day",
-                    6: "2 hours a day",
-                    8: "3 hours day",
-                    10: "4 hours a day"
+                    1: '0 hours a day',
+                    3: '1 hour a day',
+                    6: '2 hours a day',
+                    8: '3 hours day',
+                    10: '4 hours a day'
                 }
             },
             {
-                task_name: "Courses",
+                task_name: 'Courses',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Attended",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Fully Attended"
+                    1: 'Not Attended',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Fully Attended'
                 }
             },
             {
-                task_name: "Memorizing shlokas",
-                scheduled_time: "19:00:00",
+                task_name: 'Memorizing shlokas',
+                scheduled_time: '19:00:00',
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "1 hour a day",
-                    6: "2 hours a day",
-                    8: "3 hours day",
-                    10: "4 hours a day"
+                    1: '0 hours a day',
+                    3: '1 hour a day',
+                    6: '2 hours a day',
+                    8: '3 hours day',
+                    10: '4 hours a day'
                 }
             },
             {
-                task_name: "Gayathri mantra japa",
-                scheduled_time: "5:00:00",
+                task_name: 'Gayathri mantra japa',
+                scheduled_time: '05:00:00',
+                notification_times: ['05:00', '11:45', '17:00'],
                 options: {
-                    1: "0 times a day",
-                    3: "1 time a day",
-                    6: "2 times a day",
-                    8: "3 times a day",
-                    10: "4 times a day"
+                    1: '0 times a day',
+                    3: '1 time a day',
+                    6: '2 times a day',
+                    8: '3 times a day',
+                    10: '4 times a day'
                 }
             },
             {
-                task_name: "Yoga",
+                task_name: 'Yoga',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "0 hours a day",
-                    3: "1 hour a day",
-                    6: "2 hours a day",
-                    8: "3 hours day",
-                    10: "4 hours a day"
+                    1: '0 hours a day',
+                    3: '1 hour a day',
+                    6: '2 hours a day',
+                    8: '3 hours day',
+                    10: '4 hours a day'
                 }
             },
             {
-                task_name: "Pranayama",
+                task_name: 'Pranayama',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             },
             {
-                task_name: "Prayers",
+                task_name: 'Prayers',
                 scheduled_time: null,
+                notification_times: [],
                 options: {
-                    1: "Not Done",
-                    3: "less than Partial",
-                    6: "Partial",
-                    8: "more than Partial",
-                    10: "Done"
+                    1: 'Not Done',
+                    3: 'less than Partial',
+                    6: 'Partial',
+                    8: 'more than Partial',
+                    10: 'Done'
                 }
             }
         ];
+        ;
 
         for (const task of tasks) {
             await client.query(
