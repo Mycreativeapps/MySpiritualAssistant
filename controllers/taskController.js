@@ -319,6 +319,8 @@ exports.getUserDailyTasks = async (req, res) => {
                 dt.completed_at,
                 ur.task_name,
                 ur.scheduled_time,
+                ur.notification_times as custom_notification_times,
+                mt.notification_times as master_notification_times,
                 ur.notifications_enabled,
                 ur.assigned_by,
                 mt.options as master_options,
@@ -332,7 +334,8 @@ exports.getUserDailyTasks = async (req, res) => {
         if (existingTasks.rows.length > 0) {
             const tasks = existingTasks.rows.map(task => ({
                 ...task,
-                options: task.custom_options || task.master_options
+                options: task.custom_options || task.master_options,
+                notification_times: task.custom_notification_times || task.master_notification_times || []
             }));
             await client.query('COMMIT');
             return responseHandler.success(res, 'Daily tasks fetched', tasks);
@@ -382,6 +385,8 @@ exports.getUserDailyTasks = async (req, res) => {
                     dt.completed_at,
                     ur.task_name,
                     ur.scheduled_time,
+                    ur.notification_times as custom_notification_times,
+                    mt.notification_times as master_notification_times,
                     ur.notifications_enabled,
                     ur.assigned_by,
                     mt.options as master_options,
@@ -394,7 +399,8 @@ exports.getUserDailyTasks = async (req, res) => {
 
             const tasks = newTasks.rows.map(task => ({
                 ...task,
-                options: task.custom_options || task.master_options
+                options: task.custom_options || task.master_options,
+                notification_times: task.custom_notification_times || task.master_notification_times || []
             }));
 
             await client.query('COMMIT');
@@ -432,7 +438,7 @@ exports.getRoutines = async (req, res) => {
 
 exports.createRoutine = async (req, res) => {
     const userId = req.user.id;
-    const { task_name, scheduled_time, options, start_date, end_date, notifications_enabled } = req.body;
+    const { task_name, scheduled_time, notification_times, options, start_date, end_date, notifications_enabled } = req.body;
 
     const client = await db.pool.connect();
     try {
@@ -440,9 +446,9 @@ exports.createRoutine = async (req, res) => {
         const normalizedScheduledTime = normalizeTime(scheduled_time);
         const notify = notifications_enabled ?? true;
         const routineResult = await client.query(
-            `INSERT INTO user_routines (user_id, task_name, scheduled_time, options, start_date, end_date, is_active, notifications_enabled, assigned_by) 
-             VALUES ($1, $2, $3, $4, $5, $6, true, $7, $1) RETURNING *`,
-            [userId, task_name, normalizedScheduledTime, JSON.stringify(options || {}), start_date || null, end_date || null, notify]
+            `INSERT INTO user_routines (user_id, task_name, scheduled_time, notification_times, options, start_date, end_date, is_active, notifications_enabled, assigned_by) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $1) RETURNING *`,
+            [userId, task_name, normalizedScheduledTime, JSON.stringify(notification_times || []), JSON.stringify(options || {}), start_date || null, end_date || null, notify]
         );
 
         const routineId = routineResult.rows[0].id;
@@ -473,7 +479,7 @@ exports.createRoutine = async (req, res) => {
 
 exports.createRoutineForMentee = async (req, res) => {
     const mentorId = req.user.id;
-    const { mentee_id, task_name, scheduled_time, options, start_date, end_date, notifications_enabled } = req.body;
+    const { mentee_id, task_name, scheduled_time, notification_times, options, start_date, end_date, notifications_enabled } = req.body;
 
     if (!mentee_id || !task_name) {
         return responseHandler.error(res, 'Mentee ID and Task Name are required', 400);
@@ -496,9 +502,9 @@ exports.createRoutineForMentee = async (req, res) => {
         const normalizedScheduledTime = normalizeTime(scheduled_time);
         const notify = notifications_enabled ?? true;
         const routineResult = await client.query(
-            `INSERT INTO user_routines (user_id, task_name, scheduled_time, options, start_date, end_date, is_active, notifications_enabled, assigned_by) 
-             VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8) RETURNING *`,
-            [mentee_id, task_name, normalizedScheduledTime, JSON.stringify(options || {}), start_date || null, end_date || null, notify, mentorId]
+            `INSERT INTO user_routines (user_id, task_name, scheduled_time, notification_times, options, start_date, end_date, is_active, notifications_enabled, assigned_by) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9) RETURNING *`,
+            [mentee_id, task_name, normalizedScheduledTime, JSON.stringify(notification_times || []), JSON.stringify(options || {}), start_date || null, end_date || null, notify, mentorId]
         );
 
         const routineId = routineResult.rows[0].id;
@@ -540,7 +546,7 @@ exports.createRoutineForMentee = async (req, res) => {
 exports.updateRoutine = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const { task_name, scheduled_time, is_active, options, notifications_enabled } = req.body;
+    const { task_name, scheduled_time, notification_times, is_active, options, notifications_enabled } = req.body;
     try {
         // First check permissions
         const currentRoutine = await db.query('SELECT assigned_by FROM user_routines WHERE id = $1 AND user_id = $2', [id, userId]);
@@ -554,8 +560,8 @@ exports.updateRoutine = async (req, res) => {
         const normalizedScheduledTime = normalizeTime(scheduled_time);
         const notify = notifications_enabled ?? true;
         const result = await db.query(
-            'UPDATE user_routines SET task_name = $1, scheduled_time = $2, is_active = $3, options = $4, notifications_enabled = $5 WHERE id = $6 RETURNING *',
-            [task_name, normalizedScheduledTime, is_active, JSON.stringify(options || {}), notify, id]
+            'UPDATE user_routines SET task_name = $1, scheduled_time = $2, notification_times = $3, is_active = $4, options = $5, notifications_enabled = $6 WHERE id = $7 RETURNING *',
+            [task_name, normalizedScheduledTime, notification_times ? JSON.stringify(notification_times) : null, is_active, JSON.stringify(options || {}), notify, id]
         );
         
         // Reset last_notified_at for today's pending tasks so the notification triggers again at the new time
