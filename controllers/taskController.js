@@ -104,7 +104,7 @@ exports.assignTasks = async (req, res) => {
         for (const task of tasksResult.rows) {
             const normalizedScheduledTime = normalizeTime(task.scheduled_time);
             const notify = tasksList.find(t => t.id === task.id)?.notify ?? true;
-            
+
             const routineResult = await client.query(
                 `INSERT INTO user_routines (user_id, master_task_id, task_name, scheduled_time, is_active, notifications_enabled, assigned_by) 
                  VALUES ($1, $2, $3, $4, true, $5, $1) 
@@ -304,7 +304,7 @@ exports.getUserDailyTasks = async (req, res) => {
         const userTimezone = userResult.rows[0]?.timezone || 'UTC';
         const moment = require('moment-timezone');
         const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
-        
+
         if (!date) {
             date = todayStr;
         }
@@ -426,13 +426,27 @@ exports.getRoutines = async (req, res) => {
     const userId = req.user.id;
     try {
         const result = await db.query(
-            'SELECT * FROM user_routines WHERE user_id = $1 ORDER BY created_at DESC',
+            'SELECT * FROM user_routines WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC',
             [userId]
         );
         responseHandler.success(res, 'Routines fetched', result.rows);
     } catch (err) {
         console.error('getRoutines Error:', err);
         responseHandler.error(res, 'Failed to fetch routines');
+    }
+};
+
+exports.getMenteeRoutines = async (req, res) => {
+    const menteeId = req.params.id;
+    try {
+        const result = await db.query(
+            'SELECT * FROM user_routines WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC',
+            [menteeId]
+        );
+        responseHandler.success(res, 'Mentee routines fetched', result.rows);
+    } catch (err) {
+        console.error('getMenteeRoutines Error:', err);
+        responseHandler.error(res, 'Failed to fetch mentee routines');
     }
 };
 
@@ -452,12 +466,12 @@ exports.createRoutine = async (req, res) => {
         );
 
         const routineId = routineResult.rows[0].id;
-        
+
         const userResult = await client.query('SELECT timezone FROM users WHERE id = $1', [userId]);
         const userTimezone = userResult.rows[0]?.timezone || 'UTC';
         const moment = require('moment-timezone');
         const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
-        
+
         const taskId = generateTimestampId();
 
         await client.query(`
@@ -508,13 +522,13 @@ exports.createRoutineForMentee = async (req, res) => {
         );
 
         const routineId = routineResult.rows[0].id;
-        
+
         const userResult = await client.query('SELECT timezone, fcm_token FROM users WHERE id = $1', [mentee_id]);
         const mentee = userResult.rows[0];
         const userTimezone = mentee?.timezone || 'UTC';
         const moment = require('moment-timezone');
         const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
-        
+
         const taskId = generateTimestampId();
 
         await client.query(`
@@ -551,7 +565,7 @@ exports.updateRoutine = async (req, res) => {
         // First check permissions
         const currentRoutine = await db.query('SELECT assigned_by FROM user_routines WHERE id = $1 AND user_id = $2', [id, userId]);
         if (currentRoutine.rows.length === 0) return responseHandler.error(res, 'Routine not found', 404);
-        
+
         const routine = currentRoutine.rows[0];
         if (routine.assigned_by && routine.assigned_by !== userId) {
             return responseHandler.error(res, 'Cannot edit a task assigned by a mentor', 403);
@@ -563,13 +577,13 @@ exports.updateRoutine = async (req, res) => {
             'UPDATE user_routines SET task_name = $1, scheduled_time = $2, notification_times = $3, is_active = $4, options = $5, notifications_enabled = $6 WHERE id = $7 RETURNING *',
             [task_name, normalizedScheduledTime, notification_times ? JSON.stringify(notification_times) : null, is_active, JSON.stringify(options || {}), notify, id]
         );
-        
+
         // Reset last_notified_at for today's pending tasks so the notification triggers again at the new time
         await db.query(
             'UPDATE daily_tasks SET last_notified_at = NULL WHERE routine_id = $1 AND score = 0',
             [id]
         );
-        
+
         responseHandler.success(res, 'Routine updated', result.rows[0]);
     } catch (err) {
         console.error('updateRoutine Error:', err);
@@ -599,11 +613,21 @@ exports.deleteRoutine = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     try {
-        const currentRoutine = await db.query('SELECT assigned_by FROM user_routines WHERE id = $1 AND user_id = $2', [id, userId]);
+        const currentRoutine = await db.query('SELECT user_id, assigned_by FROM user_routines WHERE id = $1', [id]);
         if (currentRoutine.rows.length === 0) return responseHandler.error(res, 'Routine not found', 404);
-        
+
         const routine = currentRoutine.rows[0];
-        if (routine.assigned_by && routine.assigned_by !== userId) {
+
+        const isOwner = routine.user_id === userId;
+        const isAssigner = routine.assigned_by === userId;
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isOwner && !isAssigner && !isAdmin) {
+            return responseHandler.error(res, 'Not authorized to delete this task', 403);
+        }
+
+        // Owner can't delete tasks assigned by a mentor (only mentor/admin can)
+        if (isOwner && routine.assigned_by && routine.assigned_by !== userId && !isAdmin) {
             return responseHandler.error(res, 'Cannot delete a task assigned by a mentor', 403);
         }
 

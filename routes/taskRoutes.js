@@ -19,5 +19,6 @@ router.post('/routines', taskController.createRoutine);
 router.post('/routines/mentee', taskController.createRoutineForMentee);
 router.put('/routines/:id', taskController.updateRoutine);
 router.delete('/routines/:id', taskController.deleteRoutine);
+router.get('/routines/mentee/:id', taskController.getMenteeRoutines);
 
 module.exports = router;
