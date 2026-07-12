@@ -92,3 +92,41 @@ exports.getChildren = async (req, res) => {
         responseHandler.error(res, 'Error fetching mentees');
     }
 };
+
+/**
+ * @openapi
+ * /api/hierarchy/parents:
+ *   get:
+ *     summary: Fetch direct mentors (parents)
+ *     tags: [Hierarchy]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of mentors
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/User'
+ */
+exports.getParents = async (req, res) => {
+    const child_id = req.user.id;
+
+    try {
+        const result = await db.query(
+            `SELECT 
+                u.id, u.name, u.email, u.phone_number, u.profile_url, u.gender,
+                (SELECT SUM(score) FROM daily_tasks WHERE user_id = u.id) as lifetime_score
+             FROM users u 
+             JOIN user_relationships r ON u.id = r.parent_id 
+             WHERE r.child_id = $1 AND u.is_active = true`,
+            [child_id]
+        );
+        responseHandler.success(res, 'Mentors fetched successfully', result.rows);
+    } catch (err) {
+        console.error(err);
+        responseHandler.error(res, 'Error fetching mentors');
+    }
+};

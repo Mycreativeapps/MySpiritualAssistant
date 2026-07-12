@@ -7,5 +7,6 @@ router.use(authMiddleware);
 
 router.post('/assign', hierarchyController.assignParent);
 router.get('/children', hierarchyController.getChildren);
+router.get('/parents', hierarchyController.getParents);
 
 module.exports = router;

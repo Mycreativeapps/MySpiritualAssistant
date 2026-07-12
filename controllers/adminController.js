@@ -68,7 +68,7 @@ exports.deleteMasterTask = async (req, res) => {
 exports.listUsers = async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT id, name, email, phone_number, role, created_at, last_active_at, is_active FROM users ORDER BY created_at DESC'
+            'SELECT id, name, email, phone_number, role, created_at, last_app_opened, is_active FROM users ORDER BY created_at DESC'
         );
         responseHandler.success(res, 'Users fetched successfully', result.rows);
     } catch (err) {

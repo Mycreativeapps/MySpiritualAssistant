@@ -419,6 +419,130 @@ exports.getUserDailyTasks = async (req, res) => {
 };
 
 /**
+ * @openapi
+ * /api/tasks/weekly:
+ *   get:
+ *     summary: Get user's tasks for the next 7 days
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ */
+exports.getUserWeeklyTasks = async (req, res) => {
+    const userId = req.user.id;
+    let { start_date } = req.query;
+
+    const client = await db.pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const userResult = await client.query('SELECT timezone FROM users WHERE id = $1', [userId]);
+        const userTimezone = userResult.rows[0]?.timezone || 'UTC';
+        const moment = require('moment-timezone');
+        const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
+
+        if (!start_date) {
+            start_date = todayStr;
+        }
+        
+        let allWeeklyTasks = {};
+
+        // Loop for 7 days
+        for (let i = 0; i < 7; i++) {
+            let currentDate = moment(start_date).add(i, 'days').format('YYYY-MM-DD');
+            allWeeklyTasks[currentDate] = [];
+
+            // 1. Fetch existing tasks
+            const existingTasks = await client.query(`
+                SELECT 
+                    dt.id as daily_task_id,
+                    ur.id as routine_id,
+                    dt.score,
+                    dt.completed_at,
+                    ur.task_name,
+                    ur.scheduled_time,
+                    dt.date,
+                    ur.notification_times as custom_notification_times,
+                    mt.notification_times as master_notification_times,
+                    ur.notifications_enabled,
+                    ur.assigned_by,
+                    mt.options as master_options,
+                    ur.options as custom_options
+                FROM daily_tasks dt
+                JOIN user_routines ur ON dt.routine_id = ur.id
+                LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
+                WHERE dt.user_id = $1 AND dt.date = $2
+            `, [userId, currentDate]);
+
+            if (existingTasks.rows.length > 0) {
+                allWeeklyTasks[currentDate] = existingTasks.rows.map(task => ({
+                    ...task,
+                    options: task.custom_options || task.master_options,
+                    notification_times: task.custom_notification_times || task.master_notification_times || []
+                }));
+                continue; // Move to next day
+            }
+
+            // 2. If no tasks exist and it's Today or Future, auto-populate from active routines
+            if (currentDate >= todayStr) {
+                const activeRoutines = await client.query(
+                    `SELECT id FROM user_routines 
+                     WHERE user_id = $1 AND is_active = true 
+                     AND (start_date IS NULL OR start_date <= $2)
+                     AND (end_date IS NULL OR end_date >= $2)`,
+                    [userId, currentDate]
+                );
+                
+                for (const routine of activeRoutines.rows) {
+                    const taskId = generateTimestampId();
+                    await client.query(`
+                        INSERT INTO daily_tasks (id, routine_id, user_id, date, score)
+                        VALUES ($1, $2, $3, $4, 0)
+                        ON CONFLICT (routine_id, date) DO NOTHING
+                    `, [taskId, routine.id, userId, currentDate]);
+                }
+
+                // Fetch newly created tasks
+                const newTasks = await client.query(`
+                    SELECT 
+                        dt.id as daily_task_id,
+                        ur.id as routine_id,
+                        dt.score,
+                        dt.completed_at,
+                        ur.task_name,
+                        ur.scheduled_time,
+                        dt.date,
+                        ur.notification_times as custom_notification_times,
+                        mt.notification_times as master_notification_times,
+                        ur.notifications_enabled,
+                        ur.assigned_by,
+                        mt.options as master_options,
+                        ur.options as custom_options
+                    FROM daily_tasks dt
+                    JOIN user_routines ur ON dt.routine_id = ur.id
+                    LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
+                    WHERE dt.user_id = $1 AND dt.date = $2
+                `, [userId, currentDate]);
+
+                allWeeklyTasks[currentDate] = newTasks.rows.map(task => ({
+                    ...task,
+                    options: task.custom_options || task.master_options,
+                    notification_times: task.custom_notification_times || task.master_notification_times || []
+                }));
+            }
+        }
+
+        await client.query('COMMIT');
+        return responseHandler.success(res, 'Weekly tasks fetched', allWeeklyTasks);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error in getUserWeeklyTasks:', err);
+        responseHandler.error(res, 'Error fetching weekly tasks');
+    } finally {
+        client.release();
+    }
+};
+
+/**
  * Routine Management
  */
 
