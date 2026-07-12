@@ -474,9 +474,9 @@ exports.login = async (req, res) => {
 
         let newTokenVersion = (user.token_version || 0) + 1;
 
-        // Update FCM Token, Last active, and Increment Token Version
+        // Update FCM Token, Last active, Increment Token Version, and set is_logged_in
         await db.query(
-            'UPDATE users SET fcm_token = $1, last_active_at = NOW(), token_version = $2 WHERE id = $3',
+            'UPDATE users SET fcm_token = $1, last_app_opened = NOW(), token_version = $2, is_logged_in = TRUE WHERE id = $3',
             [fcm_token || user.fcm_token, newTokenVersion, user.id]
         );
 
@@ -580,7 +580,7 @@ exports.refresh = async (req, res) => {
         );
 
         // Slide the last active window
-        await db.query('UPDATE users SET last_active_at = NOW() WHERE id = $1', [session.user_id]);
+        await db.query('UPDATE users SET last_app_opened = NOW(), is_logged_in = TRUE WHERE id = $1', [session.user_id]);
         responseHandler.success(res, 'Token refreshed', { accessToken });
     } catch (err) {
         console.error('Error refreshing token:', err);
@@ -616,9 +616,9 @@ exports.logout = async (req, res) => {
         if (refresh_token) {
             await db.query('DELETE FROM refresh_tokens WHERE token = $1', [refresh_token]);
         }
-        // Clear FCM token to stop notifications
+        // Clear FCM token to stop notifications, update login status and logout date
         if (req.user && req.user.id) {
-            await db.query('UPDATE users SET fcm_token = NULL WHERE id = $1', [req.user.id]);
+            await db.query('UPDATE users SET fcm_token = NULL, is_logged_in = FALSE WHERE id = $1', [req.user.id]);
         }
         responseHandler.success(res, 'Logged out successfully');
     } catch (err) {
