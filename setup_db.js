@@ -22,7 +22,8 @@ const setup = async () => {
                 is_active BOOLEAN DEFAULT TRUE,
                 token_version INTEGER DEFAULT 0,
                 year_of_birth INT,
-                is_logged_in BOOLEAN DEFAULT FALSE
+                is_logged_in BOOLEAN DEFAULT FALSE,
+                device_id VARCHAR(255)
             );
         `);
         console.log('Users table created/verified.');
