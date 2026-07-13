@@ -62,9 +62,16 @@ exports.getMasterTasks = async (req, res) => {
  */
 exports.assignTasks = async (req, res) => {
     const userId = req.user.id;
-    const { taskIds, effectiveDate } = req.body;
+    const { taskIds, tasks, effectiveDate } = req.body;
 
-    if (!Array.isArray(taskIds) || taskIds.length < 5) {
+    let tasksList = [];
+    if (tasks && Array.isArray(tasks)) {
+        tasksList = tasks;
+    } else if (taskIds && Array.isArray(taskIds)) {
+        tasksList = taskIds.map(id => ({ id, notify: true }));
+    }
+
+    if (tasksList.length < 5) {
         return responseHandler.error(res, 'Please select at least 5 tasks', 400);
     }
 
@@ -72,17 +79,19 @@ exports.assignTasks = async (req, res) => {
     try {
         await client.query('BEGIN');
 
+        const ids = tasksList.map(t => t.id);
+
         // 1. Get task details for validation/logging
         const tasksResult = await client.query(
             'SELECT id, task_name, scheduled_time FROM master_tasks WHERE id = ANY($1)',
-            [taskIds]
+            [ids]
         );
 
         // 2. Mark existing routines as inactive if they are not in the new selection
         // This ensures the cron job next time only sees the new ones
         await client.query(
             'UPDATE user_routines SET is_active = false WHERE user_id = $1 AND master_task_id IS NOT NULL AND NOT (master_task_id = ANY($2))',
-            [userId, taskIds]
+            [userId, ids]
         );
 
         // 3. Insert/Activate new routines
@@ -94,13 +103,15 @@ exports.assignTasks = async (req, res) => {
 
         for (const task of tasksResult.rows) {
             const normalizedScheduledTime = normalizeTime(task.scheduled_time);
+            const notify = tasksList.find(t => t.id === task.id)?.notify ?? true;
+
             const routineResult = await client.query(
-                `INSERT INTO user_routines (user_id, master_task_id, task_name, scheduled_time, is_active) 
-                 VALUES ($1, $2, $3, $4, true) 
+                `INSERT INTO user_routines (user_id, master_task_id, task_name, scheduled_time, is_active, notifications_enabled, assigned_by) 
+                 VALUES ($1, $2, $3, $4, true, $5, $1) 
                  ON CONFLICT (user_id, master_task_id) 
-                 DO UPDATE SET is_active = true, scheduled_time = EXCLUDED.scheduled_time
+                 DO UPDATE SET is_active = true, scheduled_time = EXCLUDED.scheduled_time, notifications_enabled = EXCLUDED.notifications_enabled, assigned_by = EXCLUDED.assigned_by
                  RETURNING id`,
-                [userId, task.id, task.task_name, normalizedScheduledTime]
+                [userId, task.id, task.task_name, normalizedScheduledTime, notify]
             );
 
             const routineId = routineResult.rows[0].id;
@@ -165,9 +176,16 @@ exports.assignTasks = async (req, res) => {
  */
 exports.assignTaskToMentee = async (req, res) => {
     const mentorId = req.user.id;
-    const { mentee_id, taskIds, effectiveDate } = req.body;
+    const { mentee_id, taskIds, tasks, effectiveDate } = req.body;
 
-    if (!mentee_id || !Array.isArray(taskIds) || taskIds.length === 0) {
+    let tasksList = [];
+    if (tasks && Array.isArray(tasks)) {
+        tasksList = tasks;
+    } else if (taskIds && Array.isArray(taskIds)) {
+        tasksList = taskIds.map(id => ({ id, notify: true }));
+    }
+
+    if (!mentee_id || tasksList.length === 0) {
         return responseHandler.error(res, 'Mentee ID and at least one task are required', 400);
     }
 
@@ -186,15 +204,16 @@ exports.assignTaskToMentee = async (req, res) => {
         }
 
         // 2. Get task details for validation/logging
+        const ids = tasksList.map(t => t.id);
         const tasksResult = await client.query(
             'SELECT id, task_name, scheduled_time FROM master_tasks WHERE id = ANY($1)',
-            [taskIds]
+            [ids]
         );
 
         // 3. Mark existing routines for mentee as inactive if not in new selection
         await client.query(
             'UPDATE user_routines SET is_active = false WHERE user_id = $1 AND master_task_id IS NOT NULL AND NOT (master_task_id = ANY($2))',
-            [mentee_id, taskIds]
+            [mentee_id, ids]
         );
 
         // 4. Insert/Activate new routines for mentee
@@ -207,13 +226,15 @@ exports.assignTaskToMentee = async (req, res) => {
 
         for (const task of tasksResult.rows) {
             const normalizedScheduledTime = normalizeTime(task.scheduled_time);
+            const notify = tasksList.find(t => t.id === task.id)?.notify ?? true;
+
             const routineResult = await client.query(
-                `INSERT INTO user_routines (user_id, master_task_id, task_name, scheduled_time, is_active) 
-                 VALUES ($1, $2, $3, $4, true) 
+                `INSERT INTO user_routines (user_id, master_task_id, task_name, scheduled_time, is_active, notifications_enabled, assigned_by) 
+                 VALUES ($1, $2, $3, $4, true, $5, $6) 
                  ON CONFLICT (user_id, master_task_id) 
-                 DO UPDATE SET is_active = true, scheduled_time = EXCLUDED.scheduled_time
+                 DO UPDATE SET is_active = true, scheduled_time = EXCLUDED.scheduled_time, notifications_enabled = EXCLUDED.notifications_enabled, assigned_by = EXCLUDED.assigned_by
                  RETURNING id`,
-                [mentee_id, task.id, task.task_name, normalizedScheduledTime]
+                [mentee_id, task.id, task.task_name, normalizedScheduledTime, notify, mentorId]
             );
 
             const routineId = routineResult.rows[0].id;
@@ -283,7 +304,7 @@ exports.getUserDailyTasks = async (req, res) => {
         const userTimezone = userResult.rows[0]?.timezone || 'UTC';
         const moment = require('moment-timezone');
         const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
-        
+
         if (!date) {
             date = todayStr;
         }
@@ -293,10 +314,15 @@ exports.getUserDailyTasks = async (req, res) => {
         const existingTasks = await client.query(`
             SELECT 
                 dt.id as daily_task_id,
+                ur.id as routine_id,
                 dt.score,
                 dt.completed_at,
                 ur.task_name,
                 ur.scheduled_time,
+                ur.notification_times as custom_notification_times,
+                mt.notification_times as master_notification_times,
+                ur.notifications_enabled,
+                ur.assigned_by,
                 mt.options as master_options,
                 ur.options as custom_options
             FROM daily_tasks dt
@@ -308,7 +334,8 @@ exports.getUserDailyTasks = async (req, res) => {
         if (existingTasks.rows.length > 0) {
             const tasks = existingTasks.rows.map(task => ({
                 ...task,
-                options: task.custom_options || task.master_options
+                options: task.custom_options || task.master_options,
+                notification_times: task.custom_notification_times || task.master_notification_times || []
             }));
             await client.query('COMMIT');
             return responseHandler.success(res, 'Daily tasks fetched', tasks);
@@ -353,10 +380,15 @@ exports.getUserDailyTasks = async (req, res) => {
             const newTasks = await client.query(`
                 SELECT 
                     dt.id as daily_task_id,
+                    ur.id as routine_id,
                     dt.score,
                     dt.completed_at,
                     ur.task_name,
                     ur.scheduled_time,
+                    ur.notification_times as custom_notification_times,
+                    mt.notification_times as master_notification_times,
+                    ur.notifications_enabled,
+                    ur.assigned_by,
                     mt.options as master_options,
                     ur.options as custom_options
                 FROM daily_tasks dt
@@ -367,7 +399,8 @@ exports.getUserDailyTasks = async (req, res) => {
 
             const tasks = newTasks.rows.map(task => ({
                 ...task,
-                options: task.custom_options || task.master_options
+                options: task.custom_options || task.master_options,
+                notification_times: task.custom_notification_times || task.master_notification_times || []
             }));
 
             await client.query('COMMIT');
@@ -386,6 +419,130 @@ exports.getUserDailyTasks = async (req, res) => {
 };
 
 /**
+ * @openapi
+ * /api/tasks/weekly:
+ *   get:
+ *     summary: Get user's tasks for the next 7 days
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ */
+exports.getUserWeeklyTasks = async (req, res) => {
+    const userId = req.user.id;
+    let { start_date } = req.query;
+
+    const client = await db.pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const userResult = await client.query('SELECT timezone FROM users WHERE id = $1', [userId]);
+        const userTimezone = userResult.rows[0]?.timezone || 'UTC';
+        const moment = require('moment-timezone');
+        const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
+
+        if (!start_date) {
+            start_date = todayStr;
+        }
+        
+        let allWeeklyTasks = {};
+
+        // Loop for 7 days
+        for (let i = 0; i < 7; i++) {
+            let currentDate = moment(start_date).add(i, 'days').format('YYYY-MM-DD');
+            allWeeklyTasks[currentDate] = [];
+
+            // 1. Fetch existing tasks
+            const existingTasks = await client.query(`
+                SELECT 
+                    dt.id as daily_task_id,
+                    ur.id as routine_id,
+                    dt.score,
+                    dt.completed_at,
+                    ur.task_name,
+                    ur.scheduled_time,
+                    dt.date,
+                    ur.notification_times as custom_notification_times,
+                    mt.notification_times as master_notification_times,
+                    ur.notifications_enabled,
+                    ur.assigned_by,
+                    mt.options as master_options,
+                    ur.options as custom_options
+                FROM daily_tasks dt
+                JOIN user_routines ur ON dt.routine_id = ur.id
+                LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
+                WHERE dt.user_id = $1 AND dt.date = $2
+            `, [userId, currentDate]);
+
+            if (existingTasks.rows.length > 0) {
+                allWeeklyTasks[currentDate] = existingTasks.rows.map(task => ({
+                    ...task,
+                    options: task.custom_options || task.master_options,
+                    notification_times: task.custom_notification_times || task.master_notification_times || []
+                }));
+                continue; // Move to next day
+            }
+
+            // 2. If no tasks exist and it's Today or Future, auto-populate from active routines
+            if (currentDate >= todayStr) {
+                const activeRoutines = await client.query(
+                    `SELECT id FROM user_routines 
+                     WHERE user_id = $1 AND is_active = true 
+                     AND (start_date IS NULL OR start_date <= $2)
+                     AND (end_date IS NULL OR end_date >= $2)`,
+                    [userId, currentDate]
+                );
+                
+                for (const routine of activeRoutines.rows) {
+                    const taskId = generateTimestampId();
+                    await client.query(`
+                        INSERT INTO daily_tasks (id, routine_id, user_id, date, score)
+                        VALUES ($1, $2, $3, $4, 0)
+                        ON CONFLICT (routine_id, date) DO NOTHING
+                    `, [taskId, routine.id, userId, currentDate]);
+                }
+
+                // Fetch newly created tasks
+                const newTasks = await client.query(`
+                    SELECT 
+                        dt.id as daily_task_id,
+                        ur.id as routine_id,
+                        dt.score,
+                        dt.completed_at,
+                        ur.task_name,
+                        ur.scheduled_time,
+                        dt.date,
+                        ur.notification_times as custom_notification_times,
+                        mt.notification_times as master_notification_times,
+                        ur.notifications_enabled,
+                        ur.assigned_by,
+                        mt.options as master_options,
+                        ur.options as custom_options
+                    FROM daily_tasks dt
+                    JOIN user_routines ur ON dt.routine_id = ur.id
+                    LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
+                    WHERE dt.user_id = $1 AND dt.date = $2
+                `, [userId, currentDate]);
+
+                allWeeklyTasks[currentDate] = newTasks.rows.map(task => ({
+                    ...task,
+                    options: task.custom_options || task.master_options,
+                    notification_times: task.custom_notification_times || task.master_notification_times || []
+                }));
+            }
+        }
+
+        await client.query('COMMIT');
+        return responseHandler.success(res, 'Weekly tasks fetched', allWeeklyTasks);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error in getUserWeeklyTasks:', err);
+        responseHandler.error(res, 'Error fetching weekly tasks');
+    } finally {
+        client.release();
+    }
+};
+
+/**
  * Routine Management
  */
 
@@ -393,7 +550,7 @@ exports.getRoutines = async (req, res) => {
     const userId = req.user.id;
     try {
         const result = await db.query(
-            'SELECT * FROM user_routines WHERE user_id = $1 ORDER BY created_at DESC',
+            'SELECT * FROM user_routines WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC',
             [userId]
         );
         responseHandler.success(res, 'Routines fetched', result.rows);
@@ -403,27 +560,42 @@ exports.getRoutines = async (req, res) => {
     }
 };
 
+exports.getMenteeRoutines = async (req, res) => {
+    const menteeId = req.params.id;
+    try {
+        const result = await db.query(
+            'SELECT * FROM user_routines WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC',
+            [menteeId]
+        );
+        responseHandler.success(res, 'Mentee routines fetched', result.rows);
+    } catch (err) {
+        console.error('getMenteeRoutines Error:', err);
+        responseHandler.error(res, 'Failed to fetch mentee routines');
+    }
+};
+
 exports.createRoutine = async (req, res) => {
     const userId = req.user.id;
-    const { task_name, scheduled_time, options, start_date, end_date } = req.body;
+    const { task_name, scheduled_time, notification_times, options, start_date, end_date, notifications_enabled } = req.body;
 
     const client = await db.pool.connect();
     try {
         await client.query('BEGIN');
         const normalizedScheduledTime = normalizeTime(scheduled_time);
+        const notify = notifications_enabled ?? true;
         const routineResult = await client.query(
-            `INSERT INTO user_routines (user_id, task_name, scheduled_time, options, start_date, end_date, is_active) 
-             VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
-            [userId, task_name, normalizedScheduledTime, JSON.stringify(options || {}), start_date || null, end_date || null]
+            `INSERT INTO user_routines (user_id, task_name, scheduled_time, notification_times, options, start_date, end_date, is_active, notifications_enabled, assigned_by) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $1) RETURNING *`,
+            [userId, task_name, normalizedScheduledTime, JSON.stringify(notification_times || []), JSON.stringify(options || {}), start_date || null, end_date || null, notify]
         );
 
         const routineId = routineResult.rows[0].id;
-        
+
         const userResult = await client.query('SELECT timezone FROM users WHERE id = $1', [userId]);
         const userTimezone = userResult.rows[0]?.timezone || 'UTC';
         const moment = require('moment-timezone');
         const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
-        
+
         const taskId = generateTimestampId();
 
         await client.query(`
@@ -445,7 +617,7 @@ exports.createRoutine = async (req, res) => {
 
 exports.createRoutineForMentee = async (req, res) => {
     const mentorId = req.user.id;
-    const { mentee_id, task_name, scheduled_time, options, start_date, end_date } = req.body;
+    const { mentee_id, task_name, scheduled_time, notification_times, options, start_date, end_date, notifications_enabled } = req.body;
 
     if (!mentee_id || !task_name) {
         return responseHandler.error(res, 'Mentee ID and Task Name are required', 400);
@@ -466,20 +638,21 @@ exports.createRoutineForMentee = async (req, res) => {
         }
 
         const normalizedScheduledTime = normalizeTime(scheduled_time);
+        const notify = notifications_enabled ?? true;
         const routineResult = await client.query(
-            `INSERT INTO user_routines (user_id, task_name, scheduled_time, options, start_date, end_date, is_active) 
-             VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
-            [mentee_id, task_name, normalizedScheduledTime, JSON.stringify(options || {}), start_date || null, end_date || null]
+            `INSERT INTO user_routines (user_id, task_name, scheduled_time, notification_times, options, start_date, end_date, is_active, notifications_enabled, assigned_by) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9) RETURNING *`,
+            [mentee_id, task_name, normalizedScheduledTime, JSON.stringify(notification_times || []), JSON.stringify(options || {}), start_date || null, end_date || null, notify, mentorId]
         );
 
         const routineId = routineResult.rows[0].id;
-        
+
         const userResult = await client.query('SELECT timezone, fcm_token FROM users WHERE id = $1', [mentee_id]);
         const mentee = userResult.rows[0];
         const userTimezone = mentee?.timezone || 'UTC';
         const moment = require('moment-timezone');
         const todayStr = moment().tz(userTimezone).format('YYYY-MM-DD');
-        
+
         const taskId = generateTimestampId();
 
         await client.query(`
@@ -511,30 +684,87 @@ exports.createRoutineForMentee = async (req, res) => {
 exports.updateRoutine = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const { task_name, scheduled_time, is_active, options } = req.body;
+    const { task_name, scheduled_time, notification_times, is_active, options, notifications_enabled } = req.body;
     try {
+        // First check permissions
+        const currentRoutine = await db.query('SELECT assigned_by FROM user_routines WHERE id = $1 AND user_id = $2', [id, userId]);
+        if (currentRoutine.rows.length === 0) return responseHandler.error(res, 'Routine not found', 404);
+
+        const routine = currentRoutine.rows[0];
+        if (routine.assigned_by && routine.assigned_by !== userId) {
+            return responseHandler.error(res, 'Cannot edit a task assigned by a mentor', 403);
+        }
+
         const normalizedScheduledTime = normalizeTime(scheduled_time);
+        const notify = notifications_enabled ?? true;
         const result = await db.query(
-            'UPDATE user_routines SET task_name = $1, scheduled_time = $2, is_active = $3, options = $4 WHERE id = $5 AND user_id = $6 RETURNING *',
-            [task_name, normalizedScheduledTime, is_active, JSON.stringify(options || {}), id, userId]
+            'UPDATE user_routines SET task_name = $1, scheduled_time = $2, notification_times = $3, is_active = $4, options = $5, notifications_enabled = $6 WHERE id = $7 RETURNING *',
+            [task_name, normalizedScheduledTime, notification_times ? JSON.stringify(notification_times) : null, is_active, JSON.stringify(options || {}), notify, id]
         );
-        if (result.rows.length === 0) return responseHandler.error(res, 'Routine not found', 404);
+
+        // Reset last_notified_at for today's pending tasks so the notification triggers again at the new time
+        await db.query(
+            'UPDATE daily_tasks SET last_notified_at = NULL WHERE routine_id = $1 AND score = 0',
+            [id]
+        );
+
         responseHandler.success(res, 'Routine updated', result.rows[0]);
     } catch (err) {
         console.error('updateRoutine Error:', err);
-        responseHandler.error(res, 'Failed to update routine');
+        responseHandler.error(res, 'Error updating routine');
     }
 };
 
+/**
+ * @openapi
+ * /api/tasks/routines/{id}:
+ *   delete:
+ *     summary: Soft delete a custom routine
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Routine deleted
+ */
 exports.deleteRoutine = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     try {
+        const currentRoutine = await db.query('SELECT user_id, assigned_by FROM user_routines WHERE id = $1', [id]);
+        if (currentRoutine.rows.length === 0) return responseHandler.error(res, 'Routine not found', 404);
+
+        const routine = currentRoutine.rows[0];
+
+        const isOwner = routine.user_id === userId;
+        const isAssigner = routine.assigned_by === userId;
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isOwner && !isAssigner && !isAdmin) {
+            return responseHandler.error(res, 'Not authorized to delete this task', 403);
+        }
+
+        // Owner can't delete tasks assigned by a mentor (only mentor/admin can)
+        if (isOwner && routine.assigned_by && routine.assigned_by !== userId && !isAdmin) {
+            return responseHandler.error(res, 'Cannot delete a task assigned by a mentor', 403);
+        }
+
         const result = await db.query(
-            'DELETE FROM user_routines WHERE id = $1 AND user_id = $2 RETURNING *',
-            [id, userId]
+            'UPDATE user_routines SET is_active = false WHERE id = $1 RETURNING id',
+            [id]
         );
-        if (result.rows.length === 0) return responseHandler.error(res, 'Routine not found', 404);
+
+        // Delete any uncompleted daily tasks for this routine so they disappear immediately
+        await db.query(
+            'DELETE FROM daily_tasks WHERE routine_id = $1 AND completed_at IS NULL',
+            [id]
+        );
         responseHandler.success(res, 'Routine deleted');
     } catch (err) {
         console.error('deleteRoutine Error:', err);

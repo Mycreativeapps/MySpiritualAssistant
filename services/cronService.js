@@ -24,22 +24,20 @@ const initCronJobs = () => {
 
             for (const tz of timezones) {
                 const now = moment().tz(tz);
-                if (now.hour() === 0 && now.minute() < 15) {
-                    const dateStr = now.format('YYYY-MM-DD');
-                    await db.query(`
-                        INSERT INTO daily_tasks (id, routine_id, user_id, date, score)
-                        SELECT concat(floor(extract(epoch from now() * 1000))::text, '_', substr(md5(random()::text), 1, 4)), ur.id, ur.user_id, $1, 0
-                        FROM user_routines ur
-                        JOIN users u ON ur.user_id = u.id
-                        WHERE u.timezone = $2 
-                        AND ur.is_active = true
-                        AND u.is_active = true
-                        AND NOT EXISTS (
-                            SELECT 1 FROM daily_tasks dt 
-                            WHERE dt.routine_id = ur.id AND dt.date = $1
-                        )
-                    `, [dateStr, tz]);
-                }
+                const dateStr = now.format('YYYY-MM-DD');
+                await db.query(`
+                    INSERT INTO daily_tasks (id, routine_id, user_id, date, score)
+                    SELECT concat(floor(extract(epoch from now() * 1000))::text, '_', substr(md5(random()::text), 1, 4)), ur.id, ur.user_id, $1, 0
+                    FROM user_routines ur
+                    JOIN users u ON ur.user_id = u.id
+                    WHERE u.timezone = $2 
+                    AND ur.is_active = true
+                    AND u.is_active = true
+                    AND NOT EXISTS (
+                        SELECT 1 FROM daily_tasks dt 
+                        WHERE dt.routine_id = ur.id AND dt.date = $1
+                    )
+                `, [dateStr, tz]);
             }
         } catch (err) {
             console.error('Error in task generation cron:', err);
@@ -55,12 +53,15 @@ const initCronJobs = () => {
                 SELECT 
                     ur.task_name as routine_name, 
                     ur.scheduled_time, 
+                    ur.notification_times as custom_notification_times,
+                    mt.notification_times as master_notification_times,
                     u.fcm_token, 
                     u.timezone, 
                     u.id as user_id,
                     u.name as user_name,
-                    mt.options as options,
+                    COALESCE(ur.options, mt.options) as options,
                     dt.id as daily_task_id,
+                    dt.score,
                     dt.last_notified_at
                 FROM user_routines ur
                 JOIN users u ON ur.user_id = u.id
@@ -68,34 +69,60 @@ const initCronJobs = () => {
                     AND dt.date = (CURRENT_TIMESTAMP AT TIME ZONE REPLACE(u.timezone, 'Asia/Calcutta', 'Asia/Kolkata'))::date
                 LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
                 WHERE ur.is_active = true 
+                AND COALESCE(ur.notifications_enabled, true) = true
                 AND u.fcm_token IS NOT NULL 
-                AND ur.scheduled_time IS NOT NULL
                 AND u.is_active = true
                 AND (dt.last_notified_at IS NULL OR dt.last_notified_at < NOW() - INTERVAL '1 hour')
-                AND dt.score = 0
             `);
 
             for (const row of result.rows) {
+                // Check if the task has reached its maximum score
+                const optionsObj = row.options ? (typeof row.options === 'string' ? JSON.parse(row.options) : row.options) : {};
+                const scores = Object.keys(optionsObj).map(Number).filter(n => !isNaN(n));
+                const maxScore = scores.length > 0 ? Math.max(...scores) : 0;
+                
+                // If the user already achieved the max score for today, don't notify
+                if (maxScore > 0 && row.score >= maxScore) continue;
+                if (maxScore === 0 && row.score > 0) continue;
+
                 const userTime = moment().tz(row.timezone);
-                const taskTime = moment(row.scheduled_time, 'HH:mm:ss');
+                
+                let notificationTimes = row.custom_notification_times;
+                if (!notificationTimes || notificationTimes.length === 0) {
+                    notificationTimes = row.master_notification_times;
+                }
+                const timesToCheck = (notificationTimes && notificationTimes.length > 0) ? notificationTimes : (row.scheduled_time ? [row.scheduled_time] : []);
+                
+                let shouldNotify = false;
+                for (const t of timesToCheck) {
+                    const taskTime = moment(t, 'HH:mm:ss');
+                    // Calculate difference in minutes ignoring seconds
+                    // Positive = task is in the future, 0 = right now, negative = past
+                    const diffMinutes = moment.duration(taskTime.diff(moment(userTime.format('HH:mm'), 'HH:mm'))).asMinutes();
 
-                // Calculate difference in minutes
-                const diffMinutes = moment.duration(taskTime.diff(moment(userTime.format('HH:mm:ss'), 'HH:mm:ss'))).asMinutes();
+                    // Send at EXACT scheduled time, with up to a 5 minute grace period
+                    // in case the server cron was slightly delayed.
+                    if (diffMinutes <= 0 && diffMinutes > -5) {
+                        shouldNotify = true;
+                        break;
+                    }
+                }
 
-                // Send if task is in 4 to 6 minutes
-                if (diffMinutes > 4 && diffMinutes <= 5) {
-                    console.log(`Sending alert for task: ${row.routine_name} to user ${row?.user_name || 'user'}. Diff: ${diffMinutes.toFixed(2)}m`);
+                if (shouldNotify) {
+                    console.log(`Sending exact-time alert for task: ${row.routine_name} to user ${row?.user_name || 'user'}`);
 
-                    const result = await sendNotification(row.fcm_token, {
+                    const optionsPayload = typeof row.options === 'string' ? row.options : JSON.stringify(row.options || {});
+
+                    const notifResult = await sendNotification(row.fcm_token, {
                         data: {
-                            title: 'Upcoming Task Alert! 🕉️',
-                            body: `Your task "${row.routine_name}" starts in 5 minutes. Ready?`,
+                            title: '🕉️ ' + row.routine_name,
+                            body: `Time for your spiritual practice!`,
                             daily_task_id: String(row.daily_task_id),
-                            options: JSON.stringify(row.options || [])
+                            options: optionsPayload
                         }
                     });
 
-                    if (result) {
+                    if (notifResult) {
                         await db.query('UPDATE daily_tasks SET last_notified_at = NOW() WHERE id = $1', [row.daily_task_id]);
                     }
                 }

@@ -10,7 +10,7 @@ const s3Client = new S3Client({
 });
 
 const clearS3Uploads = async () => {
-    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+    const bucketName = process.env.AWS_BUCKET_NAME;
     if (!bucketName || !process.env.AWS_ACCESS_KEY_ID) {
         console.error('AWS credentials or bucket name not configured in .env file.');
         process.exit(1);

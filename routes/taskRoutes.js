@@ -11,6 +11,7 @@ router.use(authMiddleware);
 router.post('/assign', taskController.assignTasks);
 router.post('/assign-mentee', taskController.assignTaskToMentee);
 router.get('/daily', taskController.getUserDailyTasks);
+router.get('/weekly', taskController.getUserWeeklyTasks);
 router.put('/:id/score', taskController.updateTaskScore);
 
 // Routine Management
@@ -19,5 +20,6 @@ router.post('/routines', taskController.createRoutine);
 router.post('/routines/mentee', taskController.createRoutineForMentee);
 router.put('/routines/:id', taskController.updateRoutine);
 router.delete('/routines/:id', taskController.deleteRoutine);
+router.get('/routines/mentee/:id', taskController.getMenteeRoutines);
 
 module.exports = router;

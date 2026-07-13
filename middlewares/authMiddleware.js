@@ -15,7 +15,7 @@ const authMiddleware = async (req, res, next) => {
         req.user = decoded;
 
         // Check for inactivity, fetch role and current token version
-        const userResult = await db.query('SELECT last_active_at, role, token_version FROM users WHERE id = $1', [decoded.id]);
+        const userResult = await db.query('SELECT last_app_opened, role, token_version FROM users WHERE id = $1', [decoded.id]);
         if (userResult.rows.length === 0) {
             console.log('Auth Failure: User not found for ID', decoded.id);
             return res.status(401).json({ message: 'User not found' });
@@ -31,18 +31,18 @@ const authMiddleware = async (req, res, next) => {
 
         req.user = { ...decoded, role: user.role };
 
-        const lastActiveDate = userResult.rows[0].last_active_at ? new Date(userResult.rows[0].last_active_at) : new Date();
-        const inactiveDuration = (new Date() - lastActiveDate) / (1000 * 60 * 60);
+        const lastActiveDate = userResult.rows[0].last_app_opened ? new Date(userResult.rows[0].last_app_opened) : new Date();
+        const inactiveDuration = (new Date() - lastActiveDate) / (1000 * 60 * 60 * 24); // in days
 
-        if (inactiveDuration > 72) {
-            console.log('Auth Failure: Session expired for user', decoded.id, 'Inactive for', inactiveDuration, 'hours');
+        if (inactiveDuration > 7) {
+            console.log('Auth Failure: Session expired for user', decoded.id, 'Inactive for', inactiveDuration.toFixed(1), 'days');
             // Invalidate session for security
             await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [decoded.id]);
-            return res.status(401).json({ message: 'Session expired due to 72h inactivity. Please login again.' });
+            return res.status(401).json({ message: 'Session expired due to 7 days inactivity. Please login again.' });
         }
 
-        // Update last active
-        await db.query('UPDATE users SET last_active_at = NOW() WHERE id = $1', [decoded.id]);
+        // Update last app opened
+        await db.query('UPDATE users SET last_app_opened = NOW(), is_logged_in = TRUE WHERE id = $1', [decoded.id]);
 
         next();
     } catch (err) {

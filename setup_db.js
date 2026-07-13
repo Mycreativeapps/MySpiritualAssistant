@@ -18,9 +18,11 @@ const setup = async () => {
                 fcm_token TEXT,
                 role VARCHAR(20) DEFAULT 'devotee' CHECK (role IN ('devotee', 'admin')),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_app_opened TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_active BOOLEAN DEFAULT TRUE,
-                token_version INTEGER DEFAULT 0
+                token_version INTEGER DEFAULT 0,
+                year_of_birth INT,
+                is_logged_in BOOLEAN DEFAULT FALSE
             );
         `);
         console.log('Users table created/verified.');
@@ -32,6 +34,7 @@ const setup = async () => {
                 task_name VARCHAR(255) NOT NULL,
                 options JSONB NOT NULL,
                 scheduled_time TIME,
+                notification_times JSONB DEFAULT '[]'::jsonb,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_by VARCHAR(50) REFERENCES users(id),
@@ -48,11 +51,14 @@ const setup = async () => {
                 task_name VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 scheduled_time TIME,
+                notification_times JSONB DEFAULT '[]'::jsonb,
                 options JSONB,
                 start_date DATE,
                 end_date DATE,
                 is_active BOOLEAN DEFAULT TRUE,
                 master_task_id INTEGER REFERENCES master_tasks(id),
+                notifications_enabled BOOLEAN DEFAULT TRUE,
+                assigned_by VARCHAR(50) REFERENCES users(id),
                 UNIQUE (user_id, master_task_id)
             );
         `);
@@ -110,6 +116,67 @@ const setup = async () => {
             );
         `);
         console.log('User relationships table created/verified.');
+
+        // 8. Create app_settings table
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key VARCHAR(255) PRIMARY KEY,
+                value JSONB NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('App settings table created/verified.');
+
+        // Insert initial donation_details
+        const initialDonationDetails = [
+          {
+            id: 'upi-india',
+            icon: 'account-balance-wallet',
+            name: 'UPI Transfer',
+            sub: 'PhonePe · GPay · Paytm · Any UPI App',
+            details: [
+              { label: 'Name', value: 'Harsha Kumar' },
+              { label: 'UPI Number', value: '8754035972' },
+            ],
+          },
+          {
+            id: 'bank-india',
+            icon: 'account-balance',
+            name: 'Bank Transfer',
+            sub: 'NEFT / RTGS / IMPS',
+            details: [
+              { label: 'Account Name', value: 'Harsha Kumar' },
+              { label: 'Account No.', value: '16404100000260' },
+              { label: 'IFSC Code', value: 'FDRL0001640' },
+              { label: 'Bank', value: 'Federal Bank' },
+            ],
+          },
+        ];
+        
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['donation_details', JSON.stringify(initialDonationDetails)]);
+        console.log('Initial donation_details inserted/verified.');
+
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['mentor_mentee_enabled', false]);
+        console.log('Initial mentor_mentee_enabled inserted/verified.');
+
+        const initialFeaturePermissions = {
+            edit_support_us: ['1782923913061_7e2b'],
+            test_notifications: ['1782923913061_7e2b']
+        };
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['feature_permissions', JSON.stringify(initialFeaturePermissions)]);
+        console.log('Initial feature_permissions inserted/verified.');
 
         console.log('Database setup completed successfully.');
         process.exit(0);
