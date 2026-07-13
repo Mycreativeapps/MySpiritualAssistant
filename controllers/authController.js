@@ -40,7 +40,9 @@ const loginSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required(),
     fcm_token: Joi.string().optional(),
-    force: Joi.boolean().optional()
+    force: Joi.boolean().optional(),
+    device_info: Joi.string().optional(),
+    device_id: Joi.string().optional()
 });
 
 const refreshSchema = Joi.object({
@@ -447,7 +449,7 @@ exports.login = async (req, res) => {
     const { error: validationError } = loginSchema.validate(req.body);
     if (validationError) return responseHandler.error(res, validationError.details[0].message, 400);
 
-    const { email, password, fcm_token, force } = req.body;
+    const { email, password, fcm_token, force, device_info, device_id } = req.body;
 
     try {
         const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -469,15 +471,18 @@ exports.login = async (req, res) => {
         // --- Single Device Session Logic ---
         // If user already has an FCM token and it's different from the current one, warn them
         if (user.fcm_token && user.fcm_token !== fcm_token && !force) {
-            return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
+            // Bypass the error if the hardware ID precisely matches
+            if (!user.device_id || user.device_id !== device_id) {
+                return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
+            }
         }
 
         let newTokenVersion = (user.token_version || 0) + 1;
 
         // Update FCM Token, Last active, Increment Token Version, and set is_logged_in
         await db.query(
-            'UPDATE users SET fcm_token = $1, last_app_opened = NOW(), token_version = $2, is_logged_in = TRUE WHERE id = $3',
-            [fcm_token || user.fcm_token, newTokenVersion, user.id]
+            'UPDATE users SET fcm_token = $1, device_id = $2, last_app_opened = NOW(), token_version = $3, is_logged_in = TRUE WHERE id = $4',
+            [fcm_token || user.fcm_token, device_id || user.device_id, newTokenVersion, user.id]
         );
 
         // Update user object for token generation
@@ -493,7 +498,7 @@ exports.login = async (req, res) => {
         const sendSecurityEmail = async () => {
             try {
                 const mailOptions = {
-                    from: `"MySpiritualCoach Security" <${process.env.EMAIL_USER}>`,
+                    from: `"MySpiritualAssistant Security" <${process.env.EMAIL_USER}>`,
                     to: user.email,
                     subject: 'Security Alert: New Sign-in Detected 🔐',
                     html: `
@@ -502,6 +507,7 @@ exports.login = async (req, res) => {
                             <p>Hare Krishna, <b>${user.name}</b>,</p>
                             <p>A new sign-in was detected on your account.</p>
                             <p><b>Time:</b> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+                            <p><b>Device:</b> ${device_info || 'Unknown Device'}</p>
                             <p>If this was you, you can safely ignore this email. If not, please change your password immediately to secure your account.</p>
                             <hr style="border: 0; border-top: 1px solid #eee;" />
                             <p style="font-size: 12px; color: #777;">&copy; MySpiritualCoach Team</p>
@@ -681,4 +687,4 @@ exports.sendTestNotification = async (req, res) => {
         console.error('Error in sendTestNotification:', err);
         return responseHandler.error(res, 'Internal server error', 500);
     }
-};
+};
