@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import moment from 'moment';
 import taskService from '../services/task';
 import {
   scheduleTaskNotifications,
@@ -35,6 +36,7 @@ type TaskStoreState = {
   error: string | null;
   fetchMasterTasks: () => Promise<void>;
   fetchUserTasks: (date?: string) => Promise<void>;
+  fetchWeeklyTasks: () => Promise<void>;
   assignUserTasks: (tasks: { id: number; notify: boolean }[]) => Promise<boolean>;
   updateTaskScore: (taskId: number, score: number) => Promise<void>;
   createCustomTask: (payload: {
@@ -50,7 +52,7 @@ type TaskStoreState = {
   resetTasks: () => void;
 };
 
-export const useTaskStore = create<TaskStoreState>(set => ({
+export const useTaskStore = create<TaskStoreState>((set, get) => ({
   masterTasks: [],
   userTasks: [],
   loading: false,
@@ -84,9 +86,10 @@ export const useTaskStore = create<TaskStoreState>(set => ({
   },
 
   fetchUserTasks: async date => {
+    const fetchDate = date || moment().format('YYYY-MM-DD');
     set({ loading: true, error: null });
     try {
-      const response = await taskService.getDailyTasks(date);
+      const response = await taskService.getDailyTasks(fetchDate);
       if (response.data.success) {
         const tasks = response.data.data;
         set({
@@ -94,10 +97,10 @@ export const useTaskStore = create<TaskStoreState>(set => ({
           loading: false,
           hasInitiallyFetched: true,
         });
-        // Schedule exact-time local notifications for today's pending tasks
-        // Only schedule when fetching today's tasks (no date param = today)
+        
+        // We only trigger weekly background fetch and multi-day scheduling if this is a "today" fetch
         if (!date) {
-          scheduleTaskNotifications(tasks);
+          get().fetchWeeklyTasks(); // Fire-and-forget background fetch for 7 days
         }
       } else {
         set({
@@ -112,6 +115,24 @@ export const useTaskStore = create<TaskStoreState>(set => ({
         loading: false,
         hasInitiallyFetched: true,
       });
+    }
+  },
+
+  fetchWeeklyTasks: async () => {
+    try {
+      const response = await taskService.getWeeklyTasks();
+      if (response.data.success) {
+        const weeklyTasksMap = response.data.data;
+        // Collect all tasks into a flat array for the notification scheduler
+        let allTasksToSchedule: any[] = [];
+        for (const [dateKey, tasks] of Object.entries(weeklyTasksMap)) {
+            allTasksToSchedule = [...allTasksToSchedule, ...(tasks as any[])];
+        }
+        // Send to scheduler which will parse dates
+        scheduleTaskNotifications(allTasksToSchedule);
+      }
+    } catch (err) {
+      console.error('Failed to fetch weekly tasks for background scheduling:', err);
     }
   },
 

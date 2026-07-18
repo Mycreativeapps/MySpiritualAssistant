@@ -31,6 +31,8 @@ import {
   getMasterTasks,
   assignTaskToMentee,
   createRoutineForMentee,
+  getMenteeRoutines,
+  deleteRoutine,
 } from '../../services/task';
 import { Notifier, NotifierComponents } from 'react-native-notifier';
 import { useUserStore } from '../../store';
@@ -83,6 +85,8 @@ const PersonDetails: React.FC = () => {
   ]);
   const [scoreHistory, setScoreHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [menteeRoutines, setMenteeRoutines] = useState<any[]>([]);
+  const [routinesLoading, setRoutinesLoading] = useState(false);
 
   const GlobalStyles = useMemo(() => createStyles(colors), [colors]);
   const styles = useMemo(() => createLocalStyles(colors), [colors]);
@@ -133,6 +137,20 @@ const PersonDetails: React.FC = () => {
         if (historyRes && historyRes.data.success) {
           setScoreHistory(historyRes.data.data);
         }
+
+        if (personData.func === 'assign_task') {
+           setRoutinesLoading(true);
+           try {
+             const routineRes = await getMenteeRoutines(personData.id);
+             if (routineRes.data.success) {
+               setMenteeRoutines(routineRes.data.data);
+             }
+           } catch(e) {
+             console.error('Failed to fetch routines:', e);
+           } finally {
+             setRoutinesLoading(false);
+           }
+        }
       } catch (error) {
         console.error('Failed to fetch person stats:', error);
       } finally {
@@ -171,7 +189,8 @@ const PersonDetails: React.FC = () => {
 
     setAssigningLoading(true);
     try {
-      const res = await assignTaskToMentee(personData.id, selectedTaskIds);
+      const formattedTasks = selectedTaskIds.map(id => ({ id, notify: true }));
+      const res = await assignTaskToMentee(personData.id, formattedTasks);
       if (res.data.success) {
         Notifier.showNotification({
           title: 'Success',
@@ -278,6 +297,42 @@ const PersonDetails: React.FC = () => {
       setAssigningLoading(false);
     }
   };
+
+  const handleDeleteRoutine = async (routineId: number) => {
+    Alert.alert(
+      'Delete Task',
+      'Are you sure you want to delete this task for the mentee?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await deleteRoutine(routineId);
+              if (res.data.success) {
+                setMenteeRoutines(prev => prev.filter(r => r.id !== routineId));
+                Notifier.showNotification({
+                  title: 'Success',
+                  description: 'Task deleted successfully.',
+                  Component: NotifierComponents.Alert,
+                  componentProps: { alertType: 'success' },
+                });
+              }
+            } catch (error: any) {
+               Notifier.showNotification({
+                  title: 'Error',
+                  description: error.response?.data?.message || 'Failed to delete task.',
+                  Component: NotifierComponents.Alert,
+                  componentProps: { alertType: 'error' },
+               });
+            }
+          },
+        },
+      ]
+    );
+  };
+
 
   const handlePromoteAdmin = async () => {
     try {
@@ -501,6 +556,47 @@ const PersonDetails: React.FC = () => {
             <WeeklyProgress history={scoreHistory || []} />
           )}
         </View>
+      )}
+
+      {personData.func === 'assign_task' && (
+        <Card style={[GlobalStyles.infoCard, { marginTop: 16 }]} mode="elevated">
+          <Card.Content>
+             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={GlobalStyles.sectionTitle}>Assigned Tasks</Text>
+                <Button 
+                   mode="text" 
+                   onPress={() => {
+                     fetchMasterTasksList();
+                     setShowTaskModal(true);
+                   }}
+                >
+                   + Add New
+                </Button>
+             </View>
+             {routinesLoading ? (
+               <ActivityIndicator size="small" color={colors.primary} style={{ padding: 20 }} />
+             ) : menteeRoutines.length === 0 ? (
+               <Text style={{ color: colors.subtext, textAlign: 'center', marginVertical: 10 }}>No tasks assigned yet.</Text>
+             ) : (
+               menteeRoutines.map((routine) => (
+                 <View key={routine.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                   <View style={{ flex: 1 }}>
+                     <Text style={{ fontWeight: 'bold', color: colors.text }}>{routine.task_name}</Text>
+                     <Text style={{ fontSize: 12, color: colors.subtext, marginTop: 4 }}>Scheduled: {routine.scheduled_time || 'N/A'}</Text>
+                   </View>
+                   {(routine.assigned_by === currentUser?.id || currentUser?.role === 'admin') && (
+                     <IconButton
+                       icon="delete"
+                       iconColor={colors.error}
+                       size={20}
+                       onPress={() => handleDeleteRoutine(routine.id)}
+                     />
+                   )}
+                 </View>
+               ))
+             )}
+          </Card.Content>
+        </Card>
       )}
 
       {/* {personData.func === 'assign_task' && (

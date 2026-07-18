@@ -11,12 +11,14 @@ import {
   Text,
   Platform,
   UIManager,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Navigator from './navigation';
 import { Provider as PaperProvider } from 'react-native-paper';
 import NetInfo from '@react-native-community/netinfo';
 import { requestUserPermission } from './services/firebaseService';
-import { requestAllPermissions } from './utils/permissions';
+import { requestAllPermissions, checkAndRequestBatteryOptimization } from './utils/permissions';
 
 import {
   PaperThemeDefault,
@@ -72,8 +74,55 @@ const AppContent: React.FC = () => {
       }
     }
 
+    // Auto-Logout Check
+    const checkInactivity = async () => {
+      try {
+        const lastOpenTime = await AsyncStorage.getItem('LAST_APP_OPEN_TIME');
+        const currentTime = Date.now();
+        
+        if (lastOpenTime) {
+          const diffMs = currentTime - parseInt(lastOpenTime, 10);
+          const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+          
+          if (diffMs > sevenDaysMs) {
+            const user = useUserStore.getState().user;
+            if (user && user.token) {
+                // Call backend logout API silently if possible, but local clear is most important
+                try {
+                  const API_BASE = require('./services/Config').API_BASE_URL();
+                  await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
+                    body: JSON.stringify({ refresh_token: user.refreshToken })
+                  });
+                } catch (e) {
+                  // Ignore backend logout errors if offline
+                }
+
+                useUserStore.getState().clearUser();
+                Alert.alert(
+                  "Session Expired",
+                  "You have been inactive for more than 7 days. Please login again to continue.",
+                  [{ text: "OK" }]
+                );
+                return;
+            }
+          }
+        }
+        await AsyncStorage.setItem('LAST_APP_OPEN_TIME', currentTime.toString());
+      } catch (err) {
+        console.error("Error checking inactivity:", err);
+      }
+    };
+    checkInactivity();
+
     // Request all necessary permissions on launch
-    requestAllPermissions();
+    requestAllPermissions().then(() => {
+      // After basic permissions, check battery optimization to ensure push reliability
+      setTimeout(() => {
+        checkAndRequestBatteryOptimization();
+      }, 2000); // Small delay to let initial permission modals pass
+    });
 
     // Sync timezone if user is logged in
     const user = useUserStore.getState().user;

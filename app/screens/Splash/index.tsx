@@ -15,11 +15,15 @@ const Splash: React.FC = () => {
   useEffect(() => {
     if (hasHydrated) {
       const timer = setTimeout(() => {
-        if (user?.token) {
+        if (user?.token && user?.name) {
           NavigationService.replace('MainApp', {
             screen: 'Home',
           });
         } else {
+          // If token exists but no profile name, the profile is corrupt or incomplete
+          if (user?.token && !user?.name) {
+            useUserStore.getState().clearUser();
+          }
           NavigationService.replace('Login');
         }
       }, 3000); // 2s delay for better branding visibility

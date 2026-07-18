@@ -12,6 +12,10 @@ export const getDailyTasks = (date?: string) => {
   return api.get('/tasks/daily', { params: { date } });
 };
 
+export const getWeeklyTasks = (start_date?: string) => {
+  return api.get('/tasks/weekly', { params: { start_date } });
+};
+
 export const updateTaskScore = (taskId: number, score: number) => {
   return api.put(`/tasks/${taskId}/score`, { score });
 };
@@ -46,14 +50,20 @@ export const deleteRoutine = (routineId: number) => {
   return api.delete(`/tasks/routines/${routineId}`);
 };
 
+export const getMenteeRoutines = (menteeId: string) => {
+  return api.get(`/tasks/routines/mentee/${menteeId}`);
+};
+
 export default {
   getMasterTasks,
   assignTasks,
   getDailyTasks,
+  getWeeklyTasks,
   updateTaskScore,
   createRoutine,
   assignTaskToMentee,
   createRoutineForMentee,
   updateRoutine,
   deleteRoutine,
+  getMenteeRoutines,
 };

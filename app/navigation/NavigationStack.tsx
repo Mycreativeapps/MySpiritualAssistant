@@ -23,6 +23,8 @@ import About from '../screens/About';
 import ScanQR from '../screens/Home/ScanQR';
 import PersonDetails from '../screens/Home/PersonDetails';
 import MenteesList from '../screens/Home/MenteesList';
+import MentorsList from '../screens/Home/MentorsList';
+import MentorshipHub from '../screens/Home/MentorshipHub';
 import TaskDetail from '../screens/Home/TaskDetail';
 import AdminDashboard from '../screens/Admin/AdminDashboard';
 import MasterTaskManager from '../screens/Admin/MasterTaskManager';
@@ -139,6 +141,35 @@ const MainApp = () => {
       component: MenteesList,
       options: {
         title: 'My Mentees',
+        headerStyle: {
+          backgroundColor: AppStyle.color.header,
+        },
+        headerTitleStyle: {
+          fontSize: 16,
+        },
+        headerTitleAllowFontScaling: false,
+        headerTintColor: '#fff',
+      },
+    },
+    {
+      screen_name: 'MentorsList',
+      component: MentorsList,
+      options: {
+        title: 'My Mentors',
+        headerStyle: {
+          backgroundColor: AppStyle.color.header,
+        },
+        headerTitleStyle: {
+          fontSize: 16,
+        },
+        headerTitleAllowFontScaling: false,
+        headerTintColor: '#fff',
+      },
+    },
+    {
+      screen_name: 'MentorshipHub',
+      component: MentorshipHub,
+      options: {
         headerStyle: {
           backgroundColor: AppStyle.color.header,
         },

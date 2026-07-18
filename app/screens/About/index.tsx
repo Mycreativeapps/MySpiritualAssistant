@@ -20,7 +20,7 @@ import {
 } from 'react-native-paper';
 import Icon from '@react-native-vector-icons/material-icons';
 import { useThemeColors } from '../../config/styles';
-import { useUserStore } from '../../store';
+import { useUserStore, useAppStore } from '../../store';
 import NavigationService from '../../navigation/NavigationService';
 import createStyles from './styles';
 import { uploadSingleFile } from '../../services/upload';
@@ -41,6 +41,7 @@ const About: React.FC = () => {
   const user = useUserStore(state => state.user);
   const clearUser = useUserStore(state => state.clearUser);
   const updateUser = useUserStore(state => state.updateUser);
+  const { isMentorMenteeEnabled, fetchAppConfig, featurePermissions } = useAppStore();
 
   const [refreshing, setRefreshing] = useState(false);
   const [qrVisible, setQrVisible] = useState(false);
@@ -74,7 +75,7 @@ const About: React.FC = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refreshProfile(), fetchScoreHistory()]);
+    await Promise.all([refreshProfile(), fetchScoreHistory(), fetchAppConfig()]);
     setRefreshing(false);
   };
 
@@ -429,8 +430,9 @@ const About: React.FC = () => {
             />
           </View>
           <View style={styles.infoCard}>
-            <Pressable
-              onPress={() => NavigationService.navigate('MenteesList')}
+            {isMentorMenteeEnabled && (
+              <Pressable
+              onPress={() => NavigationService.navigate('MentorshipHub', { initialTab: 'mentees' })}
               style={({ pressed }) => [
                 {
                   backgroundColor: pressed
@@ -468,6 +470,49 @@ const About: React.FC = () => {
               </Text>
               <Icon name="chevron-right" size={24} color={colors.primary} />
             </Pressable>
+            )}
+
+            {isMentorMenteeEnabled && (
+              <Pressable
+              onPress={() => NavigationService.navigate('MentorshipHub', { initialTab: 'mentors' })}
+              style={({ pressed }) => [
+                {
+                  backgroundColor: pressed
+                    ? colors.primary + '10'
+                    : 'transparent',
+                  padding: 12,
+                  borderRadius: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: colors.primary + '20',
+                },
+              ]}
+            >
+              <View
+                style={{
+                  backgroundColor: colors.primary + '10',
+                  padding: 8,
+                  borderRadius: 10,
+                }}
+              >
+                <Icon name="person" size={24} color={colors.primary} />
+              </View>
+              <Text
+                style={{
+                  marginLeft: 12,
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  color: colors.text,
+                  flex: 1,
+                }}
+              >
+                My Mentors
+              </Text>
+              <Icon name="chevron-right" size={24} color={colors.primary} />
+            </Pressable>
+            )}
 
             <View
               style={{
@@ -523,7 +568,7 @@ const About: React.FC = () => {
             marginBottom: 24,
           }}
         >
-          {user?.role === 'admin' && (
+          {featurePermissions?.test_notifications?.includes(user?.id || '') && (
             <Button
               mode="contained"
               onPress={async () => {

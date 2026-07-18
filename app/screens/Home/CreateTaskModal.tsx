@@ -1,5 +1,5 @@
 import React, { useState, memo, useEffect } from 'react';
-import { View, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Pressable, Alert, ScrollView, StyleSheet } from 'react-native';
 import {
   Text,
   Button,
@@ -33,8 +33,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   taskToEdit,
 }) => {
   const colors = useThemeColors();
-  const { createCustomTask, updateCustomTask, loading } = useTaskStore();
+  const { 
+    createCustomTask, 
+    updateCustomTask, 
+    loading,
+    masterTasks,
+    fetchMasterTasks,
+    assignUserTasks,
+    userTasks
+  } = useTaskStore();
 
+  const [assignmentMode, setAssignmentMode] = useState<'default' | 'custom'>('custom');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
+  const [taskNotifications, setTaskNotifications] = useState<Record<number, boolean>>({});
   const [taskName, setTaskName] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -65,6 +76,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   useEffect(() => {
     if (taskToEdit) {
+      setAssignmentMode('custom');
       setTaskName(taskToEdit.task_name || '');
       
       // format scheduled time (e.g., "08:00:00" to "08:00")
@@ -107,6 +119,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       resetForm();
     }
   }, [taskToEdit, visible]);
+
+  useEffect(() => {
+    if (visible && assignmentMode === 'default') {
+      fetchMasterTasks();
+    }
+  }, [visible, assignmentMode, fetchMasterTasks]);
 
   const handleCreateCustomTask = async () => {
     if (!taskName) {
@@ -191,11 +209,65 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setNotificationsEnabled(true);
     setUseScheduledTime(true);
     setNotificationTimes([]);
+    setAssignmentMode('custom');
+    setSelectedTaskIds([]);
+    setTaskNotifications({});
   };
 
   const handleDismiss = () => {
     resetForm();
     onDismiss();
+  };
+
+  const isTaskAlreadyAssigned = (masterTaskName: string) => {
+    return userTasks.some(ut => ut.task_name === masterTaskName);
+  };
+
+  const toggleTaskSelection = (id: number) => {
+    setSelectedTaskIds(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(tid => tid !== id);
+      } else {
+        setTaskNotifications(n => ({ ...n, [id]: true }));
+        return [...prev, id];
+      }
+    });
+  };
+
+  const toggleTaskNotification = (id: number) => {
+    setTaskNotifications(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleAddDefaultTasks = async () => {
+    if (selectedTaskIds.length === 0) {
+      Alert.alert('Selection Required', 'Please select at least one task.');
+      return;
+    }
+
+    let allSuccess = true;
+    for (const id of selectedTaskIds) {
+      const task = masterTasks.find(t => t.id === id);
+      if (task) {
+        const payload = {
+          task_name: task.task_name,
+          scheduled_time: task.scheduled_time || '',
+          notification_times: [],
+          options: task.options || {},
+          notifications_enabled: taskNotifications[id] ?? true,
+        };
+        const success = await createCustomTask(payload);
+        if (!success) {
+          allSuccess = false;
+        }
+      }
+    }
+
+    if (allSuccess) {
+      handleDismiss();
+      onSuccess();
+    } else {
+      Alert.alert('Error', 'Failed to assign some tasks. Please try again.');
+    }
   };
 
   return (
@@ -240,7 +312,123 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 </View>
               </View>
 
-              <TextInput
+              {!taskToEdit && (
+                <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
+                  <Pressable
+                    style={[
+                      styles.tab,
+                      assignmentMode === 'custom' && { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() => setAssignmentMode('custom')}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        assignmentMode === 'custom' ? { color: 'white' } : { color: colors.subtext },
+                      ]}
+                    >
+                      Custom Task
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.tab,
+                      assignmentMode === 'default' && { backgroundColor: colors.primary },
+                    ]}
+                    onPress={() => setAssignmentMode('default')}
+                  >
+                    <Text
+                      style={[
+                        styles.tabText,
+                        assignmentMode === 'default' ? { color: 'white' } : { color: colors.subtext },
+                      ]}
+                    >
+                      Default Tasks
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
+              {assignmentMode === 'default' ? (
+                <View>
+                  {loading ? (
+                    <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+                  ) : masterTasks.length === 0 ? (
+                    <Text style={{ textAlign: 'center', color: colors.subtext, marginVertical: 20 }}>
+                      No default tasks available.
+                    </Text>
+                  ) : (
+                    masterTasks.map(task => {
+                      const isAssigned = isTaskAlreadyAssigned(task.task_name);
+                      const isSelected = selectedTaskIds.includes(task.id);
+                      return (
+                        <Pressable
+                          key={task.id}
+                          onPress={() => !isAssigned && toggleTaskSelection(task.id)}
+                          style={[
+                            styles.taskItem,
+                            { backgroundColor: colors.surface, borderColor: colors.border },
+                            isSelected && { borderColor: colors.primary, backgroundColor: colors.primary + '20' },
+                            isAssigned && { opacity: 0.5 },
+                          ]}
+                          disabled={isAssigned}
+                        >
+                          <View style={styles.taskInfo}>
+                            <Text style={[styles.taskName, { color: colors.text }]}>{task.task_name}</Text>
+                            <Text style={[styles.taskDesc, { color: colors.subtext }]}>
+                              {task.scheduled_time || 'Anytime'}
+                            </Text>
+                            {isAssigned && (
+                              <Text style={{ color: colors.primary, fontSize: 12, marginTop: 4 }}>
+                                Already Assigned
+                              </Text>
+                            )}
+                          </View>
+                          
+                          {isSelected && !isAssigned && (
+                            <Pressable
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                toggleTaskNotification(task.id);
+                              }}
+                              style={{ marginRight: 12, padding: 4 }}
+                            >
+                              <Icon
+                                name={taskNotifications[task.id] !== false ? "notifications-active" : "notifications-off"}
+                                size={24}
+                                color={taskNotifications[task.id] !== false ? colors.primary : colors.subtext}
+                              />
+                            </Pressable>
+                          )}
+                        </Pressable>
+                      );
+                    })
+                  )}
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 24 }}>
+                    <Button
+                      mode="text"
+                      onPress={onDismiss}
+                      style={{ flex: 1 }}
+                      textColor={colors.subtext}
+                      disabled={loading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      mode="contained"
+                      onPress={handleAddDefaultTasks}
+                      loading={loading}
+                      disabled={loading || selectedTaskIds.length === 0}
+                      style={{ flex: 1 }}
+                      buttonColor={colors.primary}
+                    >
+                      Add Selected
+                    </Button>
+                  </View>
+                </View>
+              ) : (
+                <View>
+                  <TextInput
                 label="Task Name"
                 placeholder="e.g., Evening Reading"
                 value={taskName}
@@ -726,6 +914,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                   {taskToEdit ? 'Save Changes' : 'Create Task'}
                 </Button>
               </View>
+              </View>
+            )}
             </View>
           </ScrollView>
         )}
@@ -759,5 +949,42 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     </Portal>
   );
 };
+
+const styles = StyleSheet.create({
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    borderRadius: 12,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  tabText: {
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  taskInfo: {
+    flex: 1,
+  },
+  taskName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  taskDesc: {
+    fontSize: 14,
+  },
+});
 
 export default memo(CreateTaskModal);

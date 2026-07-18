@@ -4,7 +4,7 @@ import NavigationService from '../navigation/NavigationService';
 export const API_BASE_URL = () => {
   return 'https://api.myspiritualassistant.com/api';
   // return 'https://myspiritualassistant.onrender.com/api';
-  // return 'http://192.168.1.20:5000/api';
+  // return 'http://192.168.29.2:5000/api';
 };
 
 export const Token = () => {
@@ -48,6 +48,8 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Bypass localtunnel warning page
+    config.headers['Bypass-Tunnel-Reminder'] = 'true';
     return config;
   },
   error => {
@@ -128,11 +130,18 @@ api.interceptors.response.use(
             console.error('[Auth] Failed to clear user store:', e);
           }
 
-          NavigationService.replace('Login');
+          NavigationService.logout('Auth');
           return Promise.reject(refreshError);
         } finally {
           isRefreshing = false;
         }
+      } else {
+         // No refresh token available, force logout
+         try {
+           const { useUserStore } = require('../store');
+           useUserStore.getState().clearUser();
+         } catch (e) {}
+         NavigationService.logout('Auth');
       }
     }
     return Promise.reject(error);

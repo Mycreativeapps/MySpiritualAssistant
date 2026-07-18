@@ -33,7 +33,7 @@ import Slider from '@react-native-community/slider';
 import Icon from '@react-native-vector-icons/material-icons';
 import NavigationService from '../../navigation/NavigationService';
 import { useThemeColors } from '../../config/styles';
-import { useUserStore, useTaskStore } from '../../store';
+import { useUserStore, useTaskStore, useAppStore } from '../../store';
 import createStyles from './styles';
 import { useNavigation } from '@react-navigation/native';
 import { Logo } from '../../assets/images/exports';
@@ -279,7 +279,13 @@ const Home: React.FC = () => {
     createCustomTask,
   } = useTaskStore();
 
+  const { isMentorMenteeEnabled, fetchAppConfig } = useAppStore();
+
   const loading = tasksLoading || userLoading;
+
+  useEffect(() => {
+    fetchAppConfig();
+  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -319,7 +325,7 @@ const Home: React.FC = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const tasks = [fetchUserTasks(), refreshProfile()];
+      const tasks = [fetchUserTasks(), refreshProfile(), fetchAppConfig()];
       // Only fetch master tasks if selection is shown or masterTasks is empty
       if (showSelection || masterTasks.length === 0) {
         tasks.push(fetchMasterTasks());
@@ -357,13 +363,15 @@ const Home: React.FC = () => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Pressable
-            accessibilityLabel="Scan QR"
-            onPress={() => NavigationService.navigate('ScanQR')}
-            style={[styles.profileButton, { marginRight: 8 }]}
-          >
-            <Icon name="qr-code-scanner" size={24} color={colors.primary} />
-          </Pressable>
+          {isMentorMenteeEnabled && (
+            <Pressable
+              accessibilityLabel="Mentorship Hub"
+              onPress={() => NavigationService.navigate('MentorshipHub', { initialTab: 'mentors' })}
+              style={[styles.profileButton, { marginRight: 8 }]}
+            >
+              <Icon name="groups" size={24} color={colors.primary} />
+            </Pressable>
+          )}
           {user?.role === 'admin' && (
             <Pressable
               accessibilityLabel="Admin Dashboard"
@@ -408,6 +416,7 @@ const Home: React.FC = () => {
     user?.profile_url,
     user?.role,
     userInitials,
+    isMentorMenteeEnabled,
   ]);
 
   const allMasterTaskIds = useMemo(() => {
@@ -459,19 +468,50 @@ const Home: React.FC = () => {
     }
 
     if (user?.token) {
-      const tasksPayload = selectedTaskIds.map(id => ({
-        id,
-        notify: taskNotifications[id] ?? true
-      }));
-      const success = await assignUserTasks(tasksPayload);
-      if (success) {
-        setSelectedTaskIds([]);
-        setTaskNotifications({});
-        await Promise.all([fetchUserTasks(), refreshProfile()]);
-        setShowSelection(false);
-        Alert.alert('Success', 'Your tasks have been assigned!');
+      if (isAddingMore) {
+        let allSuccess = true;
+        for (const id of selectedTaskIds) {
+          const task = masterTasks.find(t => t.id === id);
+          if (task) {
+            const payload = {
+              task_name: task.task_name,
+              scheduled_time: task.scheduled_time || '',
+              notification_times: [],
+              options: task.options || {},
+              notifications_enabled: taskNotifications[id] ?? true,
+            };
+            const success = await createCustomTask(payload);
+            if (!success) {
+              allSuccess = false;
+            }
+          }
+        }
+
+        if (allSuccess) {
+          setSelectedTaskIds([]);
+          setTaskNotifications({});
+          await Promise.all([fetchUserTasks(), refreshProfile()]);
+          setShowSelection(false);
+          Alert.alert('Success', 'Your additional tasks have been added!');
+        } else {
+          Alert.alert('Error', 'Failed to assign some tasks. Please try again.');
+        }
       } else {
-        Alert.alert('Error', 'Failed to assign tasks. Please try again.');
+        // Initial assignment logic
+        const tasksPayload = selectedTaskIds.map(id => ({
+          id,
+          notify: taskNotifications[id] ?? true
+        }));
+        const success = await assignUserTasks(tasksPayload);
+        if (success) {
+          setSelectedTaskIds([]);
+          setTaskNotifications({});
+          await Promise.all([fetchUserTasks(), refreshProfile()]);
+          setShowSelection(false);
+          Alert.alert('Success', 'Your tasks have been assigned!');
+        } else {
+          Alert.alert('Error', 'Failed to assign tasks. Please try again.');
+        }
       }
     }
   };
@@ -650,7 +690,7 @@ const Home: React.FC = () => {
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {selectedTaskIds.length} of 5 tasks selected
+                  {selectedTaskIds.length} task{selectedTaskIds.length !== 1 ? 's' : ''} selected
                 </Text>
               </>
             )}

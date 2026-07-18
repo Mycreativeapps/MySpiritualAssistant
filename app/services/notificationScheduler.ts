@@ -41,11 +41,11 @@ const ensureChannel = async () => {
 };
 
 /**
- * Convert a "HH:mm" or "HH:mm:ss" string to today's unix timestamp (ms).
- * Returns null if the time cannot be parsed or has already passed today.
+ * Convert a "HH:mm" or "HH:mm:ss" string AND a "YYYY-MM-DD" date string to unix timestamp (ms).
+ * Returns null if the time cannot be parsed or has already passed.
  */
-const getTimestampForToday = (scheduledTime: string): number | null => {
-  if (!scheduledTime) return null;
+const getTimestampForDate = (scheduledTime: string, scheduledDate: string): number | null => {
+  if (!scheduledTime || !scheduledDate) return null;
 
   const parts = scheduledTime.split(':');
   if (parts.length < 2) return null;
@@ -56,18 +56,16 @@ const getTimestampForToday = (scheduledTime: string): number | null => {
 
   if (isNaN(hours) || isNaN(minutes)) return null;
 
-  const now = new Date();
-  const target = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    hours,
-    minutes,
-    seconds,
-    0,
-  );
+  const dateParts = scheduledDate.split('-');
+  if (dateParts.length < 3) return null;
+  
+  const year = parseInt(dateParts[0], 10);
+  const month = parseInt(dateParts[1], 10) - 1; // 0-indexed
+  const day = parseInt(dateParts[2], 10);
 
-  // If this time has already passed today, don't schedule
+  const target = new Date(year, month, day, hours, minutes, seconds, 0);
+
+  // If this time has already passed, don't schedule
   if (target.getTime() <= Date.now()) return null;
 
   return target.getTime();
@@ -151,7 +149,11 @@ export const scheduleTaskNotifications = async (
 
       for (let i = 0; i < timesToCheck.length; i++) {
         const timeStr = timesToCheck[i];
-        const timestamp = getTimestampForToday(timeStr);
+        
+        // Use task date if available, fallback to today's date if missing for some reason
+        const taskDate = (task as any).date || new Date().toISOString().split('T')[0];
+        const timestamp = getTimestampForDate(timeStr, taskDate);
+        
         if (!timestamp) {
           skipped++;
           continue;
@@ -192,7 +194,7 @@ export const scheduleTaskNotifications = async (
         );
 
         console.log(
-          `[Scheduler] ✅ Scheduled "${task.task_name}" at ${new Date(timestamp).toLocaleTimeString('en-IN')}`,
+          `[Scheduler] ✅ Scheduled "${task.task_name}" at ${new Date(timestamp).toLocaleString('en-IN')}`,
         );
         scheduled++;
       }

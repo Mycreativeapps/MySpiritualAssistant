@@ -7,6 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { Camera } from 'react-native-camera-kit';
+import RNQRGenerator from 'rn-qr-generator';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Text, IconButton, ActivityIndicator } from 'react-native-paper';
@@ -100,12 +101,27 @@ const ScanQR: React.FC = () => {
         quality: 1,
       });
 
-      if (result.didCancel || !result.assets?.length) return;
+      const imageUri = result.assets[0].uri;
+      if (!imageUri) return;
 
-      Alert.alert(
-        'Gallery Scan',
-        'QR detection from gallery is not available right now. Please scan using camera.',
-      );
+      setLoading(true);
+      try {
+        const detectionResult = await RNQRGenerator.detect({
+          uri: imageUri,
+        });
+
+        if (detectionResult.values && detectionResult.values.length > 0) {
+          setScanned(true);
+          processQRData(detectionResult.values[0]);
+        } else {
+          Alert.alert('No QR Code', 'Could not detect a QR code in the selected image.');
+        }
+      } catch (err) {
+        Alert.alert('Error', 'Failed to read QR code from image.');
+        console.error('QR Detection Error:', err);
+      } finally {
+        setLoading(false);
+      }
     } catch {
       Alert.alert('Error', 'Failed to open gallery.');
     }
@@ -131,7 +147,14 @@ const ScanQR: React.FC = () => {
             style={styles.backButton}
           />
 
-          <Text style={styles.headerTitle}>Scan QR Code</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Scan QR Code</Text>
+            <Text style={styles.headerSubTitle}>
+              {mode === 'promote_admin'
+                ? 'Scan QR to promote as Admin'
+                : 'Choose your mentor'}
+            </Text>
+          </View>
 
           <View style={{ width: 48 }} />
         </View>
@@ -193,6 +216,12 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingHorizontal: 10,
   },
 
+  headerContent: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   headerTitle: {
     color: 'white',
     fontSize: 18,
@@ -201,6 +230,12 @@ const createStyles = (colors: any) => StyleSheet.create({
 
   backButton: {
     backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+
+  headerSubTitle: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'normal',
   },
 
   centerContainer: {
