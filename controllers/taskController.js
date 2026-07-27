@@ -33,7 +33,7 @@ exports.getMasterTasks = async (req, res) => {
         responseHandler.success(res, 'Master tasks fetched successfully', result.rows);
     } catch (err) {
         console.error('Error fetching master tasks:', err);
-        responseHandler.error(res, 'Error fetching master tasks');
+        responseHandler.error(res, 'We encountered an issue fetching the tasks. Please try again later.');
     }
 };
 
@@ -147,7 +147,7 @@ exports.assignTasks = async (req, res) => {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error assigning tasks:', err);
-        responseHandler.error(res, 'Error assigning tasks');
+        responseHandler.error(res, 'We encountered an issue updating your tasks. Please try again later.');
     } finally {
         client.release();
     }
@@ -276,7 +276,7 @@ exports.assignTaskToMentee = async (req, res) => {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error in assignTaskToMentee:', err);
-        responseHandler.error(res, 'Error assigning tasks to mentee');
+        responseHandler.error(res, 'We encountered an issue assigning tasks to your mentee. Please try again later.');
     } finally {
         client.release();
     }
@@ -412,7 +412,7 @@ exports.getUserDailyTasks = async (req, res) => {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error in getUserDailyTasks:', err);
-        responseHandler.error(res, 'Error fetching/generating daily tasks');
+        responseHandler.error(res, 'We encountered an issue fetching your daily tasks. Please try again later.');
     } finally {
         client.release();
     }
@@ -536,7 +536,7 @@ exports.getUserWeeklyTasks = async (req, res) => {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error in getUserWeeklyTasks:', err);
-        responseHandler.error(res, 'Error fetching weekly tasks');
+        responseHandler.error(res, 'We encountered an issue fetching your weekly tasks. Please try again later.');
     } finally {
         client.release();
     }
@@ -556,7 +556,7 @@ exports.getRoutines = async (req, res) => {
         responseHandler.success(res, 'Routines fetched', result.rows);
     } catch (err) {
         console.error('getRoutines Error:', err);
-        responseHandler.error(res, 'Failed to fetch routines');
+        responseHandler.error(res, 'We encountered an issue fetching your routines. Please try again later.');
     }
 };
 
@@ -570,7 +570,7 @@ exports.getMenteeRoutines = async (req, res) => {
         responseHandler.success(res, 'Mentee routines fetched', result.rows);
     } catch (err) {
         console.error('getMenteeRoutines Error:', err);
-        responseHandler.error(res, 'Failed to fetch mentee routines');
+        responseHandler.error(res, 'We encountered an issue fetching the mentee routines. Please try again later.');
     }
 };
 
@@ -609,7 +609,7 @@ exports.createRoutine = async (req, res) => {
     } catch (err) {
         if (client) await client.query('ROLLBACK');
         console.error('createRoutine Error:', err);
-        responseHandler.error(res, 'Failed to create routine');
+        responseHandler.error(res, 'We encountered an issue creating your routine. Please try again later.');
     } finally {
         if (client) client.release();
     }
@@ -675,7 +675,7 @@ exports.createRoutineForMentee = async (req, res) => {
     } catch (err) {
         if (client) await client.query('ROLLBACK');
         console.error('createRoutineForMentee Error:', err);
-        responseHandler.error(res, 'Failed to create routine for mentee');
+        responseHandler.error(res, 'We encountered an issue creating a routine for your mentee. Please try again later.');
     } finally {
         if (client) client.release();
     }
@@ -711,7 +711,7 @@ exports.updateRoutine = async (req, res) => {
         responseHandler.success(res, 'Routine updated', result.rows[0]);
     } catch (err) {
         console.error('updateRoutine Error:', err);
-        responseHandler.error(res, 'Error updating routine');
+        responseHandler.error(res, 'We encountered an issue updating the routine. Please try again later.');
     }
 };
 
@@ -768,7 +768,7 @@ exports.deleteRoutine = async (req, res) => {
         responseHandler.success(res, 'Routine deleted');
     } catch (err) {
         console.error('deleteRoutine Error:', err);
-        responseHandler.error(res, 'Failed to delete routine');
+        responseHandler.error(res, 'We encountered an issue deleting the routine. Please try again later.');
     }
 };
 
@@ -812,6 +812,6 @@ exports.updateTaskScore = async (req, res) => {
         responseHandler.success(res, 'Score updated', result.rows[0]);
     } catch (err) {
         console.error('Error updating score:', err);
-        responseHandler.error(res, 'Error updating score');
+        responseHandler.error(res, 'We encountered an issue updating the task score. Please try again later.');
     }
 };

@@ -34,7 +34,16 @@ app.use('/api/settings', settingsRoutes);
 // Generic Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    responseHandler.error(res, 'Something went wrong!', 500, err.message);
+    
+    // Handle Payload Too Large errors (e.g., from express.json / body-parser)
+    if (err.type === 'entity.too.large' || err.status === 413) {
+        return responseHandler.error(res, 'The data you are trying to send exceeds the allowed size limit. Please reduce the size and try again.', 413);
+    }
+
+    const status = err.status || 500;
+    const message = err.status && err.status !== 500 ? err.message : 'Something went wrong! Please try again later.';
+
+    responseHandler.error(res, message, status, err.message);
 });
 
 module.exports = app;
