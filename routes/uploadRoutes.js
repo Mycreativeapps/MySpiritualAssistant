@@ -5,9 +5,16 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 const responseHandler = require('../utils/responseHandler');
 
+const multer = require('multer');
+
 // Local middleware to handle Multer upload validation or size errors gracefully
 const handleMulterErrors = (err, req, res, next) => {
-    if (err) {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return responseHandler.error(res, 'File size exceeds the maximum allowed limit of 10 MB. Please upload a smaller file.', 413);
+        }
+        return responseHandler.error(res, err.message, 400);
+    } else if (err) {
         return responseHandler.error(res, err.message, 400);
     }
     next();

@@ -21,11 +21,11 @@ exports.getSetting = async (req, res) => {
         if (result.rows.length > 0) {
             responseHandler.success(res, 'Setting fetched successfully', result.rows[0].value);
         } else {
-            responseHandler.error(res, 'Setting not found', 404);
+            responseHandler.error(res, 'The requested setting could not be found.', 404);
         }
     } catch (err) {
         console.error('Error fetching setting:', err);
-        responseHandler.error(res, 'Error fetching setting');
+        responseHandler.error(res, 'We encountered an issue fetching the setting. Please try again later.');
     }
 };
 
@@ -73,7 +73,7 @@ exports.updateSetting = async (req, res) => {
         }
 
         if (!isAuthorized) {
-            return responseHandler.error(res, 'Access Denied: You do not have permission to modify this setting.', 403);
+            return responseHandler.error(res, 'You do not have permission to modify this setting.', 403);
         }
         await db.query(
             `INSERT INTO app_settings (key, value, updated_at) 
@@ -85,6 +85,6 @@ exports.updateSetting = async (req, res) => {
         responseHandler.success(res, 'Setting updated successfully');
     } catch (err) {
         console.error('Error updating setting:', err);
-        responseHandler.error(res, 'Error updating setting');
+        responseHandler.error(res, 'We encountered an issue updating the setting. Please try again later.');
     }
 };

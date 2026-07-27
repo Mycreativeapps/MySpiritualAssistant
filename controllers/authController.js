@@ -187,7 +187,7 @@ exports.sendOTP = async (req, res) => {
         responseHandler.success(res, 'OTP sent successfully');
     } catch (err) {
         console.error('Error in sendOTP:', err);
-        responseHandler.error(res, 'Error sending OTP');
+        responseHandler.error(res, 'We encountered an issue sending the verification code. Please try again later.');
     }
 };
 
@@ -234,7 +234,7 @@ exports.verifyOTP = async (req, res) => {
         responseHandler.success(res, 'Email verified successfully');
     } catch (err) {
         console.error('Error verifying OTP:', err);
-        responseHandler.error(res, 'Error verifying OTP');
+        responseHandler.error(res, 'We encountered an issue verifying your code. Please try again later.');
     }
 };
 
@@ -301,7 +301,7 @@ exports.forgotPassword = async (req, res) => {
         responseHandler.success(res, 'Password reset OTP sent successfully');
     } catch (err) {
         console.error('Error in forgotPassword:', err);
-        responseHandler.error(res, 'Error processing password reset');
+        responseHandler.error(res, 'We encountered an issue processing your password reset request. Please try again later.');
     }
 };
 
@@ -339,7 +339,7 @@ exports.resetPassword = async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return responseHandler.error(res, 'Invalid or expired OTP', 400);
+            return responseHandler.error(res, 'The verification code is invalid or has expired. Please request a new one.', 400);
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -349,7 +349,7 @@ exports.resetPassword = async (req, res) => {
         responseHandler.success(res, 'Password reset successfully. You can now login.');
     } catch (err) {
         console.error('Error resetting password:', err);
-        responseHandler.error(res, 'Error resetting password');
+        responseHandler.error(res, 'We encountered an issue resetting your password. Please try again later.');
     }
 };
 
@@ -415,9 +415,9 @@ exports.register = async (req, res) => {
     } catch (err) {
         if (client) await client.query('ROLLBACK');
         if (err.code === '23505') {
-            return responseHandler.error(res, 'Email already registered', 409);
+            return responseHandler.error(res, 'This email address is already registered. Please log in.', 409);
         }
-        responseHandler.error(res, 'Error registering user', 500);
+        responseHandler.error(res, 'We encountered an issue creating your account. Please try again later.', 500);
     } finally {
         if (client) client.release();
     }
@@ -539,7 +539,7 @@ exports.login = async (req, res) => {
         });
     } catch (err) {
         console.error('Error logging in:', err);
-        responseHandler.error(res, 'Internal server error', 500);
+        responseHandler.error(res, 'We encountered an issue while trying to log you in. Please try again later.', 500);
     }
 };
 
@@ -590,7 +590,7 @@ exports.refresh = async (req, res) => {
         responseHandler.success(res, 'Token refreshed', { accessToken });
     } catch (err) {
         console.error('Error refreshing token:', err);
-        responseHandler.error(res, 'Error refreshing token');
+        responseHandler.error(res, 'Your session could not be refreshed. Please log in again.');
     }
 };
 
@@ -629,7 +629,7 @@ exports.logout = async (req, res) => {
         responseHandler.success(res, 'Logged out successfully');
     } catch (err) {
         console.error('Error logging out:', err);
-        responseHandler.error(res, 'Error logging out');
+        responseHandler.error(res, 'We encountered an issue while logging you out. Please try again.');
     }
 };
 /**
@@ -654,7 +654,7 @@ exports.deactivateAccount = async (req, res) => {
         responseHandler.success(res, 'Account deactivated successfully');
     } catch (err) {
         console.error('Error deactivating account:', err);
-        responseHandler.error(res, 'Error deactivating account', 500);
+        responseHandler.error(res, 'We encountered an issue deactivating your account. Please try again later.', 500);
     }
 };
 
@@ -681,10 +681,10 @@ exports.sendTestNotification = async (req, res) => {
         if (result) {
             return responseHandler.success(res, 'Test notification sent successfully!');
         } else {
-            return responseHandler.error(res, 'Failed to send notification. Check server logs.', 500);
+            return responseHandler.error(res, 'We encountered an issue sending the test notification. Please try again later.', 500);
         }
     } catch (err) {
         console.error('Error in sendTestNotification:', err);
-        return responseHandler.error(res, 'Internal server error', 500);
+        return responseHandler.error(res, 'We encountered an unexpected error. Please try again later.', 500);
     }
 };
