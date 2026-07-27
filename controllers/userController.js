@@ -21,7 +21,7 @@ exports.getScoreHistory = async (req, res) => {
         responseHandler.success(res, 'Score history fetched', result.rows);
     } catch (err) {
         console.error('getScoreHistory Error:', err);
-        responseHandler.error(res, 'Failed to fetch score history');
+        responseHandler.error(res, 'We encountered an issue fetching your score history. Please try again later.');
     }
 };
 
@@ -47,7 +47,7 @@ exports.getProfileStats = async (req, res) => {
         responseHandler.success(res, 'Profile stats fetched', result.rows[0]);
     } catch (err) {
         console.error('getProfileStats Error:', err);
-        responseHandler.error(res, 'Failed to fetch profile stats');
+        responseHandler.error(res, 'We encountered an issue fetching your profile details. Please try again later.');
     }
 };
 
@@ -73,7 +73,7 @@ exports.getUserStatsById = async (req, res) => {
         responseHandler.success(res, 'User stats fetched', result.rows[0]);
     } catch (err) {
         console.error('getUserStatsById Error:', err);
-        responseHandler.error(res, 'Failed to fetch user stats');
+        responseHandler.error(res, 'We encountered an issue fetching the user statistics. Please try again later.');
     }
 };
 
@@ -97,7 +97,7 @@ exports.getUserScoreHistoryById = async (req, res) => {
         responseHandler.success(res, 'Score history fetched', result.rows);
     } catch (err) {
         console.error('getUserScoreHistoryById Error:', err);
-        responseHandler.error(res, 'Failed to fetch score history');
+        responseHandler.error(res, 'We encountered an issue fetching the score history for this user. Please try again later.');
     }
 };
 
@@ -120,7 +120,7 @@ exports.syncTimezone = async (req, res) => {
         responseHandler.success(res, 'Timezone synced successfully');
     } catch (err) {
         console.error('syncTimezone Error:', err);
-        responseHandler.error(res, 'Failed to sync timezone');
+        responseHandler.error(res, 'We encountered an issue updating your timezone. Please check your connection and try again.');
     }
 };
 
@@ -151,6 +151,6 @@ exports.updateProfile = async (req, res) => {
         responseHandler.success(res, 'Profile updated successfully', result.rows[0]);
     } catch (err) {
         console.error('updateProfile Error:', err);
-        responseHandler.error(res, 'Failed to update profile');
+        responseHandler.error(res, 'We encountered an issue updating your profile. Please check the details and try again.');
     }
 };

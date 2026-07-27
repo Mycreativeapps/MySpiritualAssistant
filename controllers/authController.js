@@ -40,7 +40,9 @@ const loginSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required(),
     fcm_token: Joi.string().optional(),
-    force: Joi.boolean().optional()
+    force: Joi.boolean().optional(),
+    device_info: Joi.string().optional(),
+    device_id: Joi.string().optional()
 });
 
 const refreshSchema = Joi.object({
@@ -185,7 +187,7 @@ exports.sendOTP = async (req, res) => {
         responseHandler.success(res, 'OTP sent successfully');
     } catch (err) {
         console.error('Error in sendOTP:', err);
-        responseHandler.error(res, 'Error sending OTP');
+        responseHandler.error(res, 'We encountered an issue sending the verification code. Please try again later.');
     }
 };
 
@@ -232,7 +234,7 @@ exports.verifyOTP = async (req, res) => {
         responseHandler.success(res, 'Email verified successfully');
     } catch (err) {
         console.error('Error verifying OTP:', err);
-        responseHandler.error(res, 'Error verifying OTP');
+        responseHandler.error(res, 'We encountered an issue verifying your code. Please try again later.');
     }
 };
 
@@ -299,7 +301,7 @@ exports.forgotPassword = async (req, res) => {
         responseHandler.success(res, 'Password reset OTP sent successfully');
     } catch (err) {
         console.error('Error in forgotPassword:', err);
-        responseHandler.error(res, 'Error processing password reset');
+        responseHandler.error(res, 'We encountered an issue processing your password reset request. Please try again later.');
     }
 };
 
@@ -337,7 +339,7 @@ exports.resetPassword = async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return responseHandler.error(res, 'Invalid or expired OTP', 400);
+            return responseHandler.error(res, 'The verification code is invalid or has expired. Please request a new one.', 400);
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -347,7 +349,7 @@ exports.resetPassword = async (req, res) => {
         responseHandler.success(res, 'Password reset successfully. You can now login.');
     } catch (err) {
         console.error('Error resetting password:', err);
-        responseHandler.error(res, 'Error resetting password');
+        responseHandler.error(res, 'We encountered an issue resetting your password. Please try again later.');
     }
 };
 
@@ -413,9 +415,9 @@ exports.register = async (req, res) => {
     } catch (err) {
         if (client) await client.query('ROLLBACK');
         if (err.code === '23505') {
-            return responseHandler.error(res, 'Email already registered', 409);
+            return responseHandler.error(res, 'This email address is already registered. Please log in.', 409);
         }
-        responseHandler.error(res, 'Error registering user', 500);
+        responseHandler.error(res, 'We encountered an issue creating your account. Please try again later.', 500);
     } finally {
         if (client) client.release();
     }
@@ -447,7 +449,7 @@ exports.login = async (req, res) => {
     const { error: validationError } = loginSchema.validate(req.body);
     if (validationError) return responseHandler.error(res, validationError.details[0].message, 400);
 
-    const { email, password, fcm_token, force } = req.body;
+    const { email, password, fcm_token, force, device_info, device_id } = req.body;
 
     try {
         const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -469,15 +471,18 @@ exports.login = async (req, res) => {
         // --- Single Device Session Logic ---
         // If user already has an FCM token and it's different from the current one, warn them
         if (user.fcm_token && user.fcm_token !== fcm_token && !force) {
-            return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
+            // Bypass the error if the hardware ID precisely matches
+            if (!user.device_id || user.device_id !== device_id) {
+                return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
+            }
         }
 
         let newTokenVersion = (user.token_version || 0) + 1;
 
         // Update FCM Token, Last active, Increment Token Version, and set is_logged_in
         await db.query(
-            'UPDATE users SET fcm_token = $1, last_app_opened = NOW(), token_version = $2, is_logged_in = TRUE WHERE id = $3',
-            [fcm_token || user.fcm_token, newTokenVersion, user.id]
+            'UPDATE users SET fcm_token = $1, device_id = $2, last_app_opened = NOW(), token_version = $3, is_logged_in = TRUE WHERE id = $4',
+            [fcm_token || user.fcm_token, device_id || user.device_id, newTokenVersion, user.id]
         );
 
         // Update user object for token generation
@@ -493,7 +498,7 @@ exports.login = async (req, res) => {
         const sendSecurityEmail = async () => {
             try {
                 const mailOptions = {
-                    from: `"MySpiritualCoach Security" <${process.env.EMAIL_USER}>`,
+                    from: `"MySpiritualAssistant Security" <${process.env.EMAIL_USER}>`,
                     to: user.email,
                     subject: 'Security Alert: New Sign-in Detected 🔐',
                     html: `
@@ -502,6 +507,7 @@ exports.login = async (req, res) => {
                             <p>Hare Krishna, <b>${user.name}</b>,</p>
                             <p>A new sign-in was detected on your account.</p>
                             <p><b>Time:</b> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+                            <p><b>Device:</b> ${device_info || 'Unknown Device'}</p>
                             <p>If this was you, you can safely ignore this email. If not, please change your password immediately to secure your account.</p>
                             <hr style="border: 0; border-top: 1px solid #eee;" />
                             <p style="font-size: 12px; color: #777;">&copy; MySpiritualCoach Team</p>
@@ -533,7 +539,7 @@ exports.login = async (req, res) => {
         });
     } catch (err) {
         console.error('Error logging in:', err);
-        responseHandler.error(res, 'Internal server error', 500);
+        responseHandler.error(res, 'We encountered an issue while trying to log you in. Please try again later.', 500);
     }
 };
 
@@ -584,7 +590,7 @@ exports.refresh = async (req, res) => {
         responseHandler.success(res, 'Token refreshed', { accessToken });
     } catch (err) {
         console.error('Error refreshing token:', err);
-        responseHandler.error(res, 'Error refreshing token');
+        responseHandler.error(res, 'Your session could not be refreshed. Please log in again.');
     }
 };
 
@@ -623,7 +629,7 @@ exports.logout = async (req, res) => {
         responseHandler.success(res, 'Logged out successfully');
     } catch (err) {
         console.error('Error logging out:', err);
-        responseHandler.error(res, 'Error logging out');
+        responseHandler.error(res, 'We encountered an issue while logging you out. Please try again.');
     }
 };
 /**
@@ -648,7 +654,7 @@ exports.deactivateAccount = async (req, res) => {
         responseHandler.success(res, 'Account deactivated successfully');
     } catch (err) {
         console.error('Error deactivating account:', err);
-        responseHandler.error(res, 'Error deactivating account', 500);
+        responseHandler.error(res, 'We encountered an issue deactivating your account. Please try again later.', 500);
     }
 };
 
@@ -675,10 +681,10 @@ exports.sendTestNotification = async (req, res) => {
         if (result) {
             return responseHandler.success(res, 'Test notification sent successfully!');
         } else {
-            return responseHandler.error(res, 'Failed to send notification. Check server logs.', 500);
+            return responseHandler.error(res, 'We encountered an issue sending the test notification. Please try again later.', 500);
         }
     } catch (err) {
         console.error('Error in sendTestNotification:', err);
-        return responseHandler.error(res, 'Internal server error', 500);
+        return responseHandler.error(res, 'We encountered an unexpected error. Please try again later.', 500);
     }
-};
+};
