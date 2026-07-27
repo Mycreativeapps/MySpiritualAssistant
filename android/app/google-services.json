@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:456382250282:android:a3087a1f97865d646ef253",
+        "mobilesdk_app_id": "1:456382250282:android:4283a65f40c7942a6ef253",
         "android_client_info": {
-          "package_name": "com.myspiritualcoach"
+          "package_name": "com.mycreativeapps.myspiritualassistant"
         }
       },
       "oauth_client": [],

@@ -35,7 +35,7 @@ const displayTaskNotification = async (remoteMessage) => {
             id: 'task_alerts_v6', // Bumped — v5 may be cached without sound on some devices
             name: 'Task Progress Alerts',
             importance: AndroidImportance.HIGH,
-            sound: 'android.resource://com.myspiritualcoach/raw/single_bell',
+            sound: 'android.resource://com.mycreativeapps.myspiritualassistant/raw/single_bell',
         });
 
         const notificationBody = body || 'Select your progress below:';

@@ -1,4 +1,4 @@
-package com.myspritualapp
+package com.mycreativeapps.myspiritualassistant
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

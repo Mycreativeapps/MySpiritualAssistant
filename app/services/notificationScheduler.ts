@@ -28,7 +28,7 @@ const TASK_ID_PREFIX = 'local_task_';
 // Use explicit Android resource URI for the sound.
 // A bare filename string can fail in release builds where resource names
 // get processed differently by R8/ProGuard shrinking.
-const SOUND_URI = 'android.resource://com.myspiritualcoach/raw/single_bell';
+const SOUND_URI = 'android.resource://com.mycreativeapps.myspiritualassistant/raw/single_bell';
 
 /** Ensure the notification channel exists (idempotent). */
 const ensureChannel = async () => {

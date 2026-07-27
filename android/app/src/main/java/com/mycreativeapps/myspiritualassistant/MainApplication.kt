@@ -1,4 +1,4 @@
-package com.myspritualapp
+package com.mycreativeapps.myspiritualassistant
 
 import android.app.Application
 import com.facebook.react.PackageList
