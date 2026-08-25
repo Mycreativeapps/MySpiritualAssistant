@@ -32,14 +32,14 @@ const registerSchema = Joi.object({
     timezone: Joi.string().default('UTC'),
     gender: Joi.string().valid('male', 'female', 'other').required(),
     year_of_birth: Joi.number().integer().min(1900).max(new Date().getFullYear()).required(),
-    fcm_token: Joi.string().optional(),
+    fcm_token: Joi.string().allow(null, '').optional(),
     country_code: Joi.string().optional()
 });
 
 const loginSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required(),
-    fcm_token: Joi.string().optional(),
+    fcm_token: Joi.string().allow(null, '').optional(),
     force: Joi.boolean().optional(),
     device_info: Joi.string().optional(),
     device_id: Joi.string().optional()
@@ -91,6 +91,75 @@ const sendMailWithRetry = async (mailOptions, retries = 3) => {
     }
 };
 
+// Helper function to alert admins when registration limit is reached
+const notifyAdminLimitReached = async (attemptedEmail, userCount, usersLimit) => {
+    try {
+        let recipientEmails = [];
+
+        // Fetch alert email list from app_settings DB table
+        try {
+            const dbResult = await db.query(
+                "SELECT value FROM app_settings WHERE key IN ('alert_emails', 'limit_alert_emails', 'admin_emails')"
+            );
+            for (const row of dbResult.rows) {
+                let val = row.value;
+                if (typeof val === 'string') {
+                    try {
+                        val = JSON.parse(val);
+                    } catch (e) {
+                        // Not JSON, treat as single email string
+                    }
+                }
+                if (Array.isArray(val)) {
+                    recipientEmails.push(...val);
+                } else if (typeof val === 'string') {
+                    recipientEmails.push(val);
+                } else if (val && Array.isArray(val.emails)) {
+                    recipientEmails.push(...val.emails);
+                }
+            }
+        } catch (dbErr) {
+            console.error('Failed to fetch alert_emails from app_settings:', dbErr.message);
+        }
+
+        // Fallback to process.env.EMAIL_USER if no emails configured in app_settings
+        if (recipientEmails.length === 0 && process.env.EMAIL_USER) {
+            recipientEmails.push(process.env.EMAIL_USER);
+        }
+
+        // Filter unique valid email strings
+        recipientEmails = [...new Set(recipientEmails.filter(e => typeof e === 'string' && e.includes('@')))];
+
+        if (recipientEmails.length === 0) {
+            console.warn('No recipient emails found in app_settings or process.env.EMAIL_USER to send limit alert.');
+            return;
+        }
+
+        const mailOptions = {
+            from: `"MySpiritualAssistant Alerts" <${process.env.EMAIL_USER}>`,
+            to: recipientEmails.join(', '),
+            subject: '⚠️ Registration Limit Exceeded Alert',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #e11d48; margin-top: 0;">⚠️ User Registration Limit Exceeded</h2>
+                    <p>A user attempted to register, but the maximum user limit has been reached.</p>
+                    <div style="background-color: #fff1f2; padding: 16px; border-radius: 8px; border-left: 4px solid #e11d48; margin: 20px 0;">
+                        <p style="margin: 4px 0;"><b>Attempted Email:</b> ${attemptedEmail}</p>
+                        <p style="margin: 4px 0;"><b>Current Total Users:</b> ${userCount}</p>
+                        <p style="margin: 4px 0;"><b>Configured USERS_LIMIT:</b> ${usersLimit}</p>
+                        <p style="margin: 4px 0;"><b>Time:</b> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+                    </div>
+                    <p style="color: #64748b; font-size: 14px;">To allow more users to register, increase the <code>USERS_LIMIT</code> setting in <code>.env</code> file or update settings in <code>app_settings</code> table.</p>
+                </div>
+            `
+        };
+        await sendMailWithRetry(mailOptions);
+        console.log(`Limit alert email sent to [${recipientEmails.join(', ')}] for attempted registration by ${attemptedEmail}`);
+    } catch (err) {
+        console.error('Failed to send admin limit alert email:', err);
+    }
+};
+
 /**
  * @openapi
  * /api/auth/send-otp:
@@ -117,6 +186,20 @@ exports.sendOTP = async (req, res) => {
     if (validationError) return responseHandler.error(res, validationError.details[0].message, 400);
 
     try {
+        // Check maximum user limit
+        const limitEnv = process.env.USERS_LIMIT;
+        if (limitEnv) {
+            const usersLimit = parseInt(limitEnv, 10);
+            if (!isNaN(usersLimit)) {
+                const countResult = await db.query('SELECT COUNT(*) FROM users');
+                const userCount = parseInt(countResult.rows[0].count, 10);
+                if (userCount >= usersLimit) {
+                    notifyAdminLimitReached(email, userCount, usersLimit);
+                    return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
+                }
+            }
+        }
+
         // Check if user already exists
         const userExists = await db.query('SELECT id FROM users WHERE email = $1', [email]);
         if (userExists.rows.length > 0) {
@@ -363,6 +446,21 @@ exports.register = async (req, res) => {
 
     try {
         await client.query('BEGIN');
+
+        // Check maximum user limit
+        const limitEnv = process.env.USERS_LIMIT;
+        if (limitEnv) {
+            const usersLimit = parseInt(limitEnv, 10);
+            if (!isNaN(usersLimit)) {
+                const countResult = await client.query('SELECT COUNT(*) FROM users');
+                const userCount = parseInt(countResult.rows[0].count, 10);
+                if (userCount >= usersLimit) {
+                    await client.query('ROLLBACK');
+                    notifyAdminLimitReached(email, userCount, usersLimit);
+                    return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
+                }
+            }
+        }
 
         // Check if phone already registered
         const phoneCheck = await client.query('SELECT id FROM users WHERE phone_number = $1', [phone_number]);

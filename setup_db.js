@@ -130,30 +130,30 @@ const setup = async () => {
 
         // Insert initial donation_details
         const initialDonationDetails = [
-          {
-            id: 'upi-india',
-            icon: 'account-balance-wallet',
-            name: 'UPI Transfer',
-            sub: 'PhonePe · GPay · Paytm · Any UPI App',
-            details: [
-              { label: 'Name', value: 'Harsha Kumar' },
-              { label: 'UPI Number', value: '8754035972' },
-            ],
-          },
-          {
-            id: 'bank-india',
-            icon: 'account-balance',
-            name: 'Bank Transfer',
-            sub: 'NEFT / RTGS / IMPS',
-            details: [
-              { label: 'Account Name', value: 'Harsha Kumar' },
-              { label: 'Account No.', value: '16404100000260' },
-              { label: 'IFSC Code', value: 'FDRL0001640' },
-              { label: 'Bank', value: 'Federal Bank' },
-            ],
-          },
+            {
+                id: 'upi-india',
+                icon: 'account-balance-wallet',
+                name: 'UPI Transfer',
+                sub: 'PhonePe · GPay · Paytm · Any UPI App',
+                details: [
+                    { label: 'Name', value: 'Harsha Kumar' },
+                    { label: 'UPI Number', value: '8754035972' },
+                ],
+            },
+            {
+                id: 'bank-india',
+                icon: 'account-balance',
+                name: 'Bank Transfer',
+                sub: 'NEFT / RTGS / IMPS',
+                details: [
+                    { label: 'Account Name', value: 'Harsha Kumar' },
+                    { label: 'Account No.', value: '16404100000260' },
+                    { label: 'IFSC Code', value: 'FDRL0001640' },
+                    { label: 'Bank', value: 'Federal Bank' },
+                ],
+            },
         ];
-        
+
         await pool.query(`
             INSERT INTO app_settings (key, value)
             VALUES ($1, $2)
@@ -178,6 +178,13 @@ const setup = async () => {
             ON CONFLICT (key) DO NOTHING;
         `, ['feature_permissions', JSON.stringify(initialFeaturePermissions)]);
         console.log('Initial feature_permissions inserted/verified.');
+
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['alert_emails', JSON.stringify(['brahawar2003@gmail.com', 'naveen.10bkp@gmail.com', 'mycreativeapps.company@gmail.com', 'vijayalagar171000@gmail.com', 'trvspriya@gmail.com'])]);
+        console.log('Initial alert_emails inserted/verified.');
 
         console.log('Database setup completed successfully.');
         process.exit(0);
