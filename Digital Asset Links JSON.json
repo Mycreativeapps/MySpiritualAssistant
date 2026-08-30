@@ -1,0 +1,11 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mycreativeapps.myspiritualassistant",
+      "sha256_cert_fingerprints":
+        ["D1:27:19:05:41:6A:62:60:9E:CD:88:D2:C8:BB:F7:5C:7E:69:79:8A:E7:07:1C:8A:10:E3:03:1A:45:75:98:AD"]
+    }
+  }
+]
