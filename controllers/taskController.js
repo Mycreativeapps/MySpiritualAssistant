@@ -324,7 +324,9 @@ exports.getUserDailyTasks = async (req, res) => {
                 ur.notifications_enabled,
                 ur.assigned_by,
                 mt.options as master_options,
-                ur.options as custom_options
+                ur.options as custom_options,
+                ur.start_date,
+                ur.end_date
             FROM daily_tasks dt
             JOIN user_routines ur ON dt.routine_id = ur.id
             LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
