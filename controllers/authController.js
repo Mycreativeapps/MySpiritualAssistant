@@ -567,12 +567,10 @@ exports.login = async (req, res) => {
         }
 
         // --- Single Device Session Logic ---
-        // If user already has an FCM token and it's different from the current one, warn them
-        if (user.fcm_token && user.fcm_token !== fcm_token && !force) {
-            // Bypass the error if the hardware ID precisely matches
-            if (!user.device_id || user.device_id !== device_id) {
-                return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
-            }
+        // If user is logged in on a DIFFERENT device, warn them. 
+        // We only block if we have a recorded device_id and it mismatches the current one.
+        if (user.is_logged_in && user.device_id && user.device_id !== device_id && !force) {
+            return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
         }
 
         let newTokenVersion = (user.token_version || 0) + 1;
