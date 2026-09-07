@@ -3,7 +3,7 @@ version: '3.9'
 services:
 
   backend:
-    image: mycreativeapps/myspiritualassistant:1.0.23
+    image: mycreativeapps/myspiritualassistant:1.0.24
     container_name: myspiritualassistant-backend
     restart: always
     ports:
@@ -29,7 +29,7 @@ services:
   environment:
     POSTGRES_DB: prod
     POSTGRES_USER: prod_user
-    POSTGRES_PASSWORD: YOUR_PASSWORD
+    POSTGRES_PASSWORD: BWik9iVpwG2K26djMHMcOk3Xq
   ports:
     - "5433:5432"
   volumes:
