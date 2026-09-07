@@ -71,8 +71,31 @@ exports.assignTasks = async (req, res) => {
         tasksList = taskIds.map(id => ({ id, notify: true }));
     }
 
-    if (tasksList.length < 5) {
-        return responseHandler.error(res, 'Please select at least 5 tasks', 400);
+    let minTasks = 1;
+    try {
+        const minSetting = await db.query("SELECT value FROM app_settings WHERE key = 'minimum_task'");
+        if (minSetting.rows.length > 0) {
+            let val = minSetting.rows[0].value;
+            if (typeof val === 'string') {
+                try { val = JSON.parse(val); } catch (e) { }
+            }
+            const parsed = parseInt(val, 10);
+            if (!isNaN(parsed)) minTasks = parsed;
+        }
+    } catch (e) {
+        console.error('Error fetching minimum_task setting:', e);
+    }
+
+    // Check if user has active routines already
+    let isFirstTime = false;
+    try {
+        const routineCheck = await db.query('SELECT COUNT(*) FROM user_routines WHERE user_id = $1 AND is_active = true', [userId]);
+        isFirstTime = parseInt(routineCheck.rows[0].count, 10) === 0;
+    } catch (e) { }
+
+    const requiredMin = isFirstTime ? minTasks : 1;
+    if (tasksList.length < requiredMin) {
+        return responseHandler.error(res, `Please select at least ${requiredMin} task${requiredMin > 1 ? 's' : ''} to continue.`, 400);
     }
 
     const client = await db.pool.connect();
@@ -392,7 +415,9 @@ exports.getUserDailyTasks = async (req, res) => {
                     ur.notifications_enabled,
                     ur.assigned_by,
                     mt.options as master_options,
-                    ur.options as custom_options
+                    ur.options as custom_options,
+                    ur.start_date,
+                    ur.end_date
                 FROM daily_tasks dt
                 JOIN user_routines ur ON dt.routine_id = ur.id
                 LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
@@ -445,7 +470,7 @@ exports.getUserWeeklyTasks = async (req, res) => {
         if (!start_date) {
             start_date = todayStr;
         }
-        
+
         let allWeeklyTasks = {};
 
         // Loop for 7 days
@@ -468,7 +493,9 @@ exports.getUserWeeklyTasks = async (req, res) => {
                     ur.notifications_enabled,
                     ur.assigned_by,
                     mt.options as master_options,
-                    ur.options as custom_options
+                    ur.options as custom_options,
+                    ur.start_date,
+                    ur.end_date
                 FROM daily_tasks dt
                 JOIN user_routines ur ON dt.routine_id = ur.id
                 LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
@@ -493,7 +520,7 @@ exports.getUserWeeklyTasks = async (req, res) => {
                      AND (end_date IS NULL OR end_date >= $2)`,
                     [userId, currentDate]
                 );
-                
+
                 for (const routine of activeRoutines.rows) {
                     const taskId = generateTimestampId();
                     await client.query(`
@@ -518,7 +545,9 @@ exports.getUserWeeklyTasks = async (req, res) => {
                         ur.notifications_enabled,
                         ur.assigned_by,
                         mt.options as master_options,
-                        ur.options as custom_options
+                        ur.options as custom_options,
+                        ur.start_date,
+                        ur.end_date
                     FROM daily_tasks dt
                     JOIN user_routines ur ON dt.routine_id = ur.id
                     LEFT JOIN master_tasks mt ON ur.master_task_id = mt.id
@@ -686,7 +715,7 @@ exports.createRoutineForMentee = async (req, res) => {
 exports.updateRoutine = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
-    const { task_name, scheduled_time, notification_times, is_active, options, notifications_enabled } = req.body;
+    const { task_name, scheduled_time, notification_times, is_active, options, notifications_enabled, start_date, end_date } = req.body;
     try {
         // First check permissions
         const currentRoutine = await db.query('SELECT assigned_by FROM user_routines WHERE id = $1 AND user_id = $2', [id, userId]);
@@ -700,8 +729,8 @@ exports.updateRoutine = async (req, res) => {
         const normalizedScheduledTime = normalizeTime(scheduled_time);
         const notify = notifications_enabled ?? true;
         const result = await db.query(
-            'UPDATE user_routines SET task_name = $1, scheduled_time = $2, notification_times = $3, is_active = $4, options = $5, notifications_enabled = $6 WHERE id = $7 RETURNING *',
-            [task_name, normalizedScheduledTime, notification_times ? JSON.stringify(notification_times) : null, is_active, JSON.stringify(options || {}), notify, id]
+            'UPDATE user_routines SET task_name = $1, scheduled_time = $2, notification_times = $3, is_active = COALESCE($4, is_active), options = $5, notifications_enabled = $6, start_date = $7, end_date = $8 WHERE id = $9 RETURNING *',
+            [task_name, normalizedScheduledTime, notification_times ? JSON.stringify(notification_times) : null, is_active, JSON.stringify(options || {}), notify, start_date || null, end_date || null, id]
         );
 
         // Reset last_notified_at for today's pending tasks so the notification triggers again at the new time
