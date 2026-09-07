@@ -643,7 +643,8 @@ exports.login = async (req, res) => {
                 year_of_birth: user.year_of_birth,
                 timezone: user.timezone,
                 profile_url: user.profile_url,
-                role: user.role
+                role: user.role,
+                has_seen_tour: !!user.has_seen_tour
             }
         });
     } catch (err) {
@@ -795,5 +796,16 @@ exports.sendTestNotification = async (req, res) => {
     } catch (err) {
         console.error('Error in sendTestNotification:', err);
         return responseHandler.error(res, 'We encountered an unexpected error. Please try again later.', 500);
+    }
+};
+
+exports.updateTourStatus = async (req, res) => {
+    try {
+        const { has_seen_tour } = req.body;
+        await db.query('UPDATE users SET has_seen_tour = $1 WHERE id = $2', [!!has_seen_tour, req.user.id]);
+        responseHandler.success(res, 'Tour status updated successfully');
+    } catch (err) {
+        console.error('Error updating tour status:', err);
+        responseHandler.error(res, 'We encountered an issue updating tour status.');
     }
 };

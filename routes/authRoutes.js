@@ -12,5 +12,6 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/logout', authMiddleware, authController.logout);
 router.post('/test-notification', authMiddleware, authController.sendTestNotification);
+router.put('/tour-status', authMiddleware, authController.updateTourStatus);
 
 module.exports = router;
