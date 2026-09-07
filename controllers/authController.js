@@ -160,6 +160,25 @@ const notifyAdminLimitReached = async (attemptedEmail, userCount, usersLimit) =>
     }
 };
 
+// Helper function to get max user limit from app_settings DB table (with process.env fallback)
+const getUsersLimit = async (queryClient = db) => {
+    try {
+        const result = await queryClient.query("SELECT value FROM app_settings WHERE key = 'users_limit'");
+        if (result.rows.length > 0 && result.rows[0].value !== null && result.rows[0].value !== undefined) {
+            const parsedVal = parseInt(typeof result.rows[0].value === 'string' ? JSON.parse(result.rows[0].value) : result.rows[0].value, 10);
+            if (!isNaN(parsedVal)) return parsedVal;
+        }
+    } catch (e) {
+        console.error('Error fetching users_limit from app_settings:', e.message);
+    }
+    const limitEnv = process.env.USERS_LIMIT;
+    if (limitEnv) {
+        const parsedEnv = parseInt(limitEnv, 10);
+        if (!isNaN(parsedEnv)) return parsedEnv;
+    }
+    return null;
+};
+
 /**
  * @openapi
  * /api/auth/send-otp:
@@ -187,16 +206,13 @@ exports.sendOTP = async (req, res) => {
 
     try {
         // Check maximum user limit
-        const limitEnv = process.env.USERS_LIMIT;
-        if (limitEnv) {
-            const usersLimit = parseInt(limitEnv, 10);
-            if (!isNaN(usersLimit)) {
-                const countResult = await db.query('SELECT COUNT(*) FROM users');
-                const userCount = parseInt(countResult.rows[0].count, 10);
-                if (userCount >= usersLimit) {
-                    notifyAdminLimitReached(email, userCount, usersLimit);
-                    return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
-                }
+        const usersLimit = await getUsersLimit(db);
+        if (usersLimit !== null) {
+            const countResult = await db.query('SELECT COUNT(*) FROM users');
+            const userCount = parseInt(countResult.rows[0].count, 10);
+            if (userCount >= usersLimit) {
+                notifyAdminLimitReached(email, userCount, usersLimit);
+                return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
             }
         }
 
@@ -448,17 +464,14 @@ exports.register = async (req, res) => {
         await client.query('BEGIN');
 
         // Check maximum user limit
-        const limitEnv = process.env.USERS_LIMIT;
-        if (limitEnv) {
-            const usersLimit = parseInt(limitEnv, 10);
-            if (!isNaN(usersLimit)) {
-                const countResult = await client.query('SELECT COUNT(*) FROM users');
-                const userCount = parseInt(countResult.rows[0].count, 10);
-                if (userCount >= usersLimit) {
-                    await client.query('ROLLBACK');
-                    notifyAdminLimitReached(email, userCount, usersLimit);
-                    return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
-                }
+        const usersLimit = await getUsersLimit(client);
+        if (usersLimit !== null) {
+            const countResult = await client.query('SELECT COUNT(*) FROM users');
+            const userCount = parseInt(countResult.rows[0].count, 10);
+            if (userCount >= usersLimit) {
+                await client.query('ROLLBACK');
+                notifyAdminLimitReached(email, userCount, usersLimit);
+                return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
             }
         }
 

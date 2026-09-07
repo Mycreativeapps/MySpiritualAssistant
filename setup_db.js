@@ -186,6 +186,13 @@ const setup = async () => {
         `, ['alert_emails', JSON.stringify(['brahawar2003@gmail.com', 'naveen.10bkp@gmail.com', 'mycreativeapps.company@gmail.com', 'vijayalagar171000@gmail.com', 'trvspriya@gmail.com'])]);
         console.log('Initial alert_emails inserted/verified.');
 
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['users_limit', 1000]);
+        console.log('Initial users_limit inserted/verified.');
+
         console.log('Database setup completed successfully.');
         process.exit(0);
     } catch (err) {
