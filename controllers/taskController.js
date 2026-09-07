@@ -86,16 +86,8 @@ exports.assignTasks = async (req, res) => {
         console.error('Error fetching minimum_task setting:', e);
     }
 
-    // Check if user has assigned routines in the past
-    let isFirstTime = false;
-    try {
-        const routineCheck = await db.query('SELECT COUNT(*) FROM user_routines WHERE user_id = $1', [userId]);
-        isFirstTime = parseInt(routineCheck.rows[0].count, 10) === 0;
-    } catch (e) { }
-
-    const requiredMin = isFirstTime ? minTasks : 1;
-    if (tasksList.length < requiredMin) {
-        return responseHandler.error(res, `Please select at least ${requiredMin} task${requiredMin > 1 ? 's' : ''} to continue.`, 400);
+    if (tasksList.length < minTasks) {
+        return responseHandler.error(res, `Please select at least ${minTasks} task${minTasks > 1 ? 's' : ''} to continue.`, 400);
     }
 
     const client = await db.pool.connect();
