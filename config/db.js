@@ -16,13 +16,19 @@ pool.on('error', (err) => {
     process.exit(-1);
 });
 
-// Test connection on startup
+// Test connection and auto-run safe schema migrations on startup
 (async () => {
     try {
         await pool.query('SELECT NOW()');
         console.log('Database connected successfully');
+        
+        // Auto-ensure required has_seen_tour column exists safely in production DB
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS has_seen_tour BOOLEAN DEFAULT FALSE;
+        `);
+        console.log('Auto DB schema migrations executed successfully.');
     } catch (err) {
-        console.error('Database connection failed:', err);
+        console.error('Database connection or migration failed:', err);
     }
 })();
 
