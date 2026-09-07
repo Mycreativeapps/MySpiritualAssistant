@@ -86,10 +86,10 @@ exports.assignTasks = async (req, res) => {
         console.error('Error fetching minimum_task setting:', e);
     }
 
-    // Check if user has active routines already
+    // Check if user has assigned routines in the past
     let isFirstTime = false;
     try {
-        const routineCheck = await db.query('SELECT COUNT(*) FROM user_routines WHERE user_id = $1 AND is_active = true', [userId]);
+        const routineCheck = await db.query('SELECT COUNT(*) FROM user_routines WHERE user_id = $1', [userId]);
         isFirstTime = parseInt(routineCheck.rows[0].count, 10) === 0;
     } catch (e) { }
 
