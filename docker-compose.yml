@@ -29,10 +29,6 @@ services:
       POSTGRES_DB: prod
       POSTGRES_USER: prod_user
       POSTGRES_PASSWORD: BWik9iVpwG2K26djMHMcOk3Xq
-
-    ports:
-      - "5433:5432"
-
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
 
