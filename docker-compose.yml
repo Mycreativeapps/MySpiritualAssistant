@@ -3,7 +3,7 @@ version: "3.8"
 services:
 
   backend:
-    image: mycreativeapps/myspiritualassistant:1.0.24
+    image: mycreativeapps/myspiritualassistant:1.0.25
     container_name: myspiritualassistant-backend
     restart: always
 
