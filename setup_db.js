@@ -23,8 +23,10 @@ const setup = async () => {
                 token_version INTEGER DEFAULT 0,
                 year_of_birth INT,
                 is_logged_in BOOLEAN DEFAULT FALSE,
-                device_id VARCHAR(255)
+                device_id VARCHAR(255),
+                has_seen_tour BOOLEAN DEFAULT FALSE
             );
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS has_seen_tour BOOLEAN DEFAULT FALSE;
         `);
         console.log('Users table created/verified.');
 
@@ -185,6 +187,20 @@ const setup = async () => {
             ON CONFLICT (key) DO NOTHING;
         `, ['alert_emails', JSON.stringify(['brahawar2003@gmail.com', 'naveen.10bkp@gmail.com', 'mycreativeapps.company@gmail.com', 'vijayalagar171000@gmail.com', 'trvspriya@gmail.com'])]);
         console.log('Initial alert_emails inserted/verified.');
+
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['users_limit', 1000]);
+        console.log('Initial users_limit inserted/verified.');
+
+        await pool.query(`
+            INSERT INTO app_settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO NOTHING;
+        `, ['minimum_task', 1]);
+        console.log('Initial minimum_task inserted/verified.');
 
         console.log('Database setup completed successfully.');
         process.exit(0);

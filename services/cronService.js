@@ -33,6 +33,8 @@ const initCronJobs = () => {
                     WHERE u.timezone = $2 
                     AND ur.is_active = true
                     AND u.is_active = true
+                    AND (ur.start_date IS NULL OR ur.start_date <= $1)
+                    AND (ur.end_date IS NULL OR ur.end_date >= $1)
                     AND NOT EXISTS (
                         SELECT 1 FROM daily_tasks dt 
                         WHERE dt.routine_id = ur.id AND dt.date = $1

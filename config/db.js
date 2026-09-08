@@ -2,13 +2,7 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-    // Uncomment the one you want to use:
     connectionString: process.env.PROD_DB_URL,
-    // connectionString: process.env.DEV_DB_URL,
-    // connectionString: process.env.DATABASE_URL,
-    // connectionString: process.env.DATABASE_URL_SUPABASE,
-    // Add SSL configuration if needed for production (e.g., Heroku/AWS)
-    // ssl: { rejectUnauthorized: false }
 });
 
 pool.on('error', (err) => {

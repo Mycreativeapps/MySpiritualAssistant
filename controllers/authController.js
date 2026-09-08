@@ -160,6 +160,25 @@ const notifyAdminLimitReached = async (attemptedEmail, userCount, usersLimit) =>
     }
 };
 
+// Helper function to get max user limit from app_settings DB table (with process.env fallback)
+const getUsersLimit = async (queryClient = db) => {
+    try {
+        const result = await queryClient.query("SELECT value FROM app_settings WHERE key = 'users_limit'");
+        if (result.rows.length > 0 && result.rows[0].value !== null && result.rows[0].value !== undefined) {
+            const parsedVal = parseInt(typeof result.rows[0].value === 'string' ? JSON.parse(result.rows[0].value) : result.rows[0].value, 10);
+            if (!isNaN(parsedVal)) return parsedVal;
+        }
+    } catch (e) {
+        console.error('Error fetching users_limit from app_settings:', e.message);
+    }
+    const limitEnv = process.env.USERS_LIMIT;
+    if (limitEnv) {
+        const parsedEnv = parseInt(limitEnv, 10);
+        if (!isNaN(parsedEnv)) return parsedEnv;
+    }
+    return null;
+};
+
 /**
  * @openapi
  * /api/auth/send-otp:
@@ -187,16 +206,13 @@ exports.sendOTP = async (req, res) => {
 
     try {
         // Check maximum user limit
-        const limitEnv = process.env.USERS_LIMIT;
-        if (limitEnv) {
-            const usersLimit = parseInt(limitEnv, 10);
-            if (!isNaN(usersLimit)) {
-                const countResult = await db.query('SELECT COUNT(*) FROM users');
-                const userCount = parseInt(countResult.rows[0].count, 10);
-                if (userCount >= usersLimit) {
-                    notifyAdminLimitReached(email, userCount, usersLimit);
-                    return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
-                }
+        const usersLimit = await getUsersLimit(db);
+        if (usersLimit !== null) {
+            const countResult = await db.query('SELECT COUNT(*) FROM users');
+            const userCount = parseInt(countResult.rows[0].count, 10);
+            if (userCount >= usersLimit) {
+                notifyAdminLimitReached(email, userCount, usersLimit);
+                return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
             }
         }
 
@@ -448,17 +464,14 @@ exports.register = async (req, res) => {
         await client.query('BEGIN');
 
         // Check maximum user limit
-        const limitEnv = process.env.USERS_LIMIT;
-        if (limitEnv) {
-            const usersLimit = parseInt(limitEnv, 10);
-            if (!isNaN(usersLimit)) {
-                const countResult = await client.query('SELECT COUNT(*) FROM users');
-                const userCount = parseInt(countResult.rows[0].count, 10);
-                if (userCount >= usersLimit) {
-                    await client.query('ROLLBACK');
-                    notifyAdminLimitReached(email, userCount, usersLimit);
-                    return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
-                }
+        const usersLimit = await getUsersLimit(client);
+        if (usersLimit !== null) {
+            const countResult = await client.query('SELECT COUNT(*) FROM users');
+            const userCount = parseInt(countResult.rows[0].count, 10);
+            if (userCount >= usersLimit) {
+                await client.query('ROLLBACK');
+                notifyAdminLimitReached(email, userCount, usersLimit);
+                return responseHandler.error(res, `Registration limit reached. Maximum allowed limit is ${usersLimit} users.`, 403);
             }
         }
 
@@ -567,12 +580,11 @@ exports.login = async (req, res) => {
         }
 
         // --- Single Device Session Logic ---
-        // If user already has an FCM token and it's different from the current one, warn them
-        if (user.fcm_token && user.fcm_token !== fcm_token && !force) {
-            // Bypass the error if the hardware ID precisely matches
-            if (!user.device_id || user.device_id !== device_id) {
-                return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
-            }
+        // Only trigger SESSION_ALREADY_ACTIVE if user is logged in on a DIFFERENT device.
+        // If device_id matches user.device_id (same device), allow login directly without prompt.
+        const isDifferentDevice = Boolean(user.device_id && device_id && user.device_id !== device_id);
+        if (user.is_logged_in && isDifferentDevice && !force) {
+            return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
         }
 
         let newTokenVersion = (user.token_version || 0) + 1;
@@ -632,7 +644,8 @@ exports.login = async (req, res) => {
                 year_of_birth: user.year_of_birth,
                 timezone: user.timezone,
                 profile_url: user.profile_url,
-                role: user.role
+                role: user.role,
+                has_seen_tour: !!user.has_seen_tour
             }
         });
     } catch (err) {
@@ -784,5 +797,16 @@ exports.sendTestNotification = async (req, res) => {
     } catch (err) {
         console.error('Error in sendTestNotification:', err);
         return responseHandler.error(res, 'We encountered an unexpected error. Please try again later.', 500);
+    }
+};
+
+exports.updateTourStatus = async (req, res) => {
+    try {
+        const { has_seen_tour } = req.body;
+        await db.query('UPDATE users SET has_seen_tour = $1 WHERE id = $2', [!!has_seen_tour, req.user.id]);
+        responseHandler.success(res, 'Tour status updated successfully');
+    } catch (err) {
+        console.error('Error updating tour status:', err);
+        responseHandler.error(res, 'We encountered an issue updating tour status.');
     }
 };
