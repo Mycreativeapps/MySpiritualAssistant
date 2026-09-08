@@ -580,9 +580,10 @@ exports.login = async (req, res) => {
         }
 
         // --- Single Device Session Logic ---
-        // If user is logged in on a DIFFERENT device, warn them. 
-        // We only block if we have a recorded device_id and it mismatches the current one.
-        if (user.is_logged_in && user.device_id && user.device_id !== device_id && !force) {
+        // Only trigger SESSION_ALREADY_ACTIVE if user is logged in on a DIFFERENT device.
+        // If device_id matches user.device_id (same device), allow login directly without prompt.
+        const isDifferentDevice = Boolean(user.device_id && device_id && user.device_id !== device_id);
+        if (user.is_logged_in && isDifferentDevice && !force) {
             return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
         }
 
