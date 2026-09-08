@@ -1,4 +1,4 @@
-version: '3'
+version: "3.8"
 
 services:
 
@@ -6,39 +6,44 @@ services:
     image: mycreativeapps/myspiritualassistant:1.0.24
     container_name: myspiritualassistant-backend
     restart: always
+
     ports:
       - "5000:5000"
+
     env_file:
       - .env
+
     depends_on:
       - postgres-prod
 
-  # redis-cache:
-  #   image: redis:alpine
-  #   container_name: redis-cache
-  #   restart: always
-  #   ports:
-  #     - "6379:6379"
-  #   command: redis-server --appendonly yes
-  #   volumes:
-  #     - redis_data:/data
+    networks:
+      - spiritual-network
 
 
   postgres-prod:
     image: postgres:16
     container_name: postgres-prod
     restart: always
+
     environment:
       POSTGRES_DB: prod
       POSTGRES_USER: prod_user
       POSTGRES_PASSWORD: BWik9iVpwG2K26djMHMcOk3Xq
+
     ports:
       - "5433:5432"
+
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
 
-
+    networks:
+      - spiritual-network
 
 
 volumes:
   postgres_prod_data:
+
+
+networks:
+  spiritual-network:
+    driver: bridge
