@@ -7,7 +7,10 @@ router.get('/my-profile', auth, userController.getProfileStats);
 router.get('/scores/history', auth, userController.getScoreHistory);
 router.get('/:userId/stats', auth, userController.getUserStatsById);
 router.get('/:userId/history', auth, userController.getUserScoreHistoryById);
+router.get('/check-app-update', userController.checkAppUpdate);
 router.post('/sync-timezone', auth, userController.syncTimezone);
+router.post('/sync-device-status', auth, userController.syncDeviceStatus);
 router.put('/profile', auth, userController.updateProfile);
 
 module.exports = router;
+
