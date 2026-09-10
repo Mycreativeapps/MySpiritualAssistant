@@ -2,7 +2,7 @@ import axios from 'axios';
 
 let API_URL = 'http://localhost:5000/api'
 
-if (window.location.hostname == 'admins.myspiritualassistant.com') {
+if (window.location.hostname === 'admins.myspiritualassistant.com') {
     API_URL = 'https://api.myspiritualassistant.com/api';
 }
 
