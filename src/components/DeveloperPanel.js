@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Switch, Space, Typography, Tag, Row, Col, Alert, message, Spin, Statistic, Button, Divider, Modal, Form } from 'antd';
+import { Card, Input, Switch, Space, Typography, Tag, Row, Col, Alert, message, Spin, Statistic, Button, Divider } from 'antd';
 import { ToolOutlined, ApiOutlined, CheckCircleOutlined, ThunderboltOutlined, CreditCardOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, MailOutlined, StarOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const DeveloperPanel = () => {
     const [settings, setSettings] = useState({});

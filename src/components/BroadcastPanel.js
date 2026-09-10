@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Radio, Select, Space, Row, Col, Table, Tag, Popconfirm, message, Badge, Tooltip, Typography, Spin, Avatar, Modal, List } from 'antd';
-import { NotificationOutlined, SendOutlined, UserOutlined, TeamOutlined, HistoryOutlined, CheckCircleOutlined, InfoCircleOutlined, TagOutlined, EyeOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Radio, Select, Space, Row, Col, Table, Tag, Popconfirm, message, Badge, Tooltip, Typography, Avatar, Modal, List } from 'antd';
+import { NotificationOutlined, SendOutlined, UserOutlined, TeamOutlined, HistoryOutlined, InfoCircleOutlined, TagOutlined, EyeOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const { Option } = Select;
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const BroadcastPanel = () => {
     const [form] = Form.useForm();

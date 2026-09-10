@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Typography, Tag, Button, Avatar, Space, Card, Row, Col, Statistic, Image } from 'antd';
+import { Layout, Menu, Typography, Tag, Button, Avatar, Card, Row, Col, Statistic, Image } from 'antd';
 import {
     UserOutlined,
     DashboardOutlined,
     ToolOutlined,
     LogoutOutlined,
-    CrownOutlined,
     TeamOutlined,
     CheckSquareOutlined,
     SafetyCertificateOutlined,
@@ -19,7 +18,7 @@ import BroadcastPanel from '../components/BroadcastPanel';
 import api from '../services/api';
 
 const { Header, Sider, Content } = Layout;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const DashboardPage = () => {
     const { user, logout } = useAuth();
