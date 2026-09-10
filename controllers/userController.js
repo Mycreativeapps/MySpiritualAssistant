@@ -150,7 +150,88 @@ exports.updateProfile = async (req, res) => {
 
         responseHandler.success(res, 'Profile updated successfully', result.rows[0]);
     } catch (err) {
-        console.error('updateProfile Error:', err);
-        responseHandler.error(res, 'We encountered an issue updating your profile. Please check the details and try again.');
+        console.error('Update profile error:', err);
+        responseHandler.error(res, 'Failed to update profile.');
     }
 };
+
+/**
+ * Sync user device status (app_version & permissions_status)
+ */
+exports.syncDeviceStatus = async (req, res) => {
+    const userId = req.user.id;
+    const { app_version, permissions_status } = req.body;
+
+    try {
+        await db.query(
+            `UPDATE users 
+             SET app_version = COALESCE($1, app_version),
+                 permissions_status = COALESCE($2, permissions_status)
+             WHERE id = $3`,
+            [app_version || null, permissions_status ? JSON.stringify(permissions_status) : null, userId]
+        );
+        responseHandler.success(res, 'Device status synced successfully');
+    } catch (err) {
+        console.error('syncDeviceStatus Error:', err);
+        responseHandler.error(res, 'Failed to sync device status.');
+    }
+};
+
+/**
+ * Check for app updates against backend settings
+ */
+exports.checkAppUpdate = async (req, res) => {
+    const currentVersion = req.query.current_version || '1.0.0';
+
+    try {
+        const result = await db.query(
+            "SELECT key, value FROM app_settings WHERE key IN ('app_version_settings', 'latest_app_version', 'min_required_version', 'force_update_enabled', 'play_store_url')"
+        );
+
+        const settings = {};
+        result.rows.forEach(row => {
+            let val = row.value;
+            try {
+                if (typeof val === 'string') val = JSON.parse(val);
+            } catch (e) {}
+            settings[row.key] = val;
+        });
+
+        // Consolidate settings with defaults
+        const latestVersion = settings.latest_app_version || '1.0.4';
+        const minVersion = settings.min_required_version || '1.0.0';
+        const forceUpdate = settings.force_update_enabled === true || settings.force_update_enabled === 'true';
+        const playStoreUrl = settings.play_store_url || 'https://play.google.com/store/apps/details?id=com.myspiritualcoach';
+
+        // Version comparator helper (e.g. "1.0.4" vs "1.0.5")
+        const cleanVersion = (v) => String(v).replace(/^v/i, '').trim();
+        const compareVersions = (v1, v2) => {
+            const parts1 = cleanVersion(v1).split('.').map(Number);
+            const parts2 = cleanVersion(v2).split('.').map(Number);
+            for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+                const val1 = parts1[i] || 0;
+                const val2 = parts2[i] || 0;
+                if (val1 > val2) return 1;
+                if (val1 < val2) return -1;
+            }
+            return 0;
+        };
+
+        const isOutdated = compareVersions(currentVersion, latestVersion) < 0;
+        const isBelowMin = compareVersions(currentVersion, minVersion) < 0;
+        const isForceUpdate = isBelowMin || (isOutdated && forceUpdate);
+
+        responseHandler.success(res, 'App update status fetched', {
+            update_available: isOutdated,
+            force_update: isForceUpdate,
+            latest_version: latestVersion,
+            min_required_version: minVersion,
+            play_store_url: playStoreUrl,
+            release_notes: settings.release_notes || 'Performance improvements and bug fixes.'
+        });
+    } catch (err) {
+        console.error('checkAppUpdate Error:', err);
+        responseHandler.error(res, 'Failed to check app update');
+    }
+};
+

@@ -15,7 +15,7 @@ const authMiddleware = async (req, res, next) => {
         req.user = decoded;
 
         // Check for inactivity, fetch role and current token version
-        const userResult = await db.query('SELECT last_app_opened, role, token_version FROM users WHERE id = $1', [decoded.id]);
+        const userResult = await db.query('SELECT name, email, profile_url, last_app_opened, role, token_version FROM users WHERE id = $1', [decoded.id]);
         if (userResult.rows.length === 0) {
             console.log('Auth Failure: User not found for ID', decoded.id);
             return res.status(401).json({ message: 'User not found' });
@@ -23,13 +23,13 @@ const authMiddleware = async (req, res, next) => {
 
         const user = userResult.rows[0];
 
-        // --- Single Device Session Check ---
-        if (decoded.token_version !== undefined && decoded.token_version !== user.token_version) {
+        // --- Single Device Session Check (Bypassed for Super-Admin for dual Web + Mobile access) ---
+        if (user.role !== 'super-admin' && decoded.token_version !== undefined && decoded.token_version !== user.token_version) {
             console.log(`Auth Failure: Version mismatch for user ${decoded.id}. Token: ${decoded.token_version}, DB: ${user.token_version}`);
             return res.status(401).json({ message: 'Another device logged in. Please login again to continue.' });
         }
 
-        req.user = { ...decoded, role: user.role };
+        req.user = { ...decoded, name: user.name, email: user.email, profile_url: user.profile_url, role: user.role };
 
         const lastActiveDate = userResult.rows[0].last_app_opened ? new Date(userResult.rows[0].last_app_opened) : new Date();
         const inactiveDuration = (new Date() - lastActiveDate) / (1000 * 60 * 60 * 24); // in days
