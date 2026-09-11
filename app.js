@@ -8,7 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const hierarchyRoutes = require('./routes/hierarchyRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const adminRoutes = require('./admins/routes/adminRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 

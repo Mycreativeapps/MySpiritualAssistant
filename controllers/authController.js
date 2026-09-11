@@ -580,16 +580,17 @@ exports.login = async (req, res) => {
         }
 
         // --- Single Device Session Logic ---
-        // Only trigger SESSION_ALREADY_ACTIVE if user is logged in on a DIFFERENT device.
-        // If device_id matches user.device_id (same device), allow login directly without prompt.
+        // Single device restriction is skipped for super-admins to allow concurrent Web + Mobile portal access.
+        const isSuperAdmin = user.role === 'super-admin';
         const isDifferentDevice = Boolean(user.device_id && device_id && user.device_id !== device_id);
-        if (user.is_logged_in && isDifferentDevice && !force) {
+        if (user.is_logged_in && isDifferentDevice && !force && !isSuperAdmin) {
             return responseHandler.error(res, 'SESSION_ALREADY_ACTIVE', 409);
         }
 
-        let newTokenVersion = (user.token_version || 0) + 1;
+        // For super-admins, keep token_version unchanged so existing mobile session tokens remain valid
+        let newTokenVersion = isSuperAdmin ? (user.token_version || 0) : ((user.token_version || 0) + 1);
 
-        // Update FCM Token, Last active, Increment Token Version, and set is_logged_in
+        // Update FCM Token, Last active, Token Version, and set is_logged_in
         await db.query(
             'UPDATE users SET fcm_token = $1, device_id = $2, last_app_opened = NOW(), token_version = $3, is_logged_in = TRUE WHERE id = $4',
             [fcm_token || user.fcm_token, device_id || user.device_id, newTokenVersion, user.id]
