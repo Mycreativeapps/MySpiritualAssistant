@@ -57,13 +57,30 @@ exports.listUsers = async (req, res) => {
         `;
         const dataRes = await db.query(dataQuery, [...params, parseInt(limit), offset]);
 
+        // Fetch Max Users Limit from app_settings
+        let maxUsers = 100;
+        try {
+            const limitRes = await db.query("SELECT value FROM app_settings WHERE key = 'users_limit'");
+            if (limitRes.rows.length > 0) {
+                let val = limitRes.rows[0].value;
+                if (typeof val === 'string') {
+                    try { val = JSON.parse(val); } catch (e) {}
+                }
+                const parsed = parseInt(val, 10);
+                if (!isNaN(parsed)) maxUsers = parsed;
+            }
+        } catch (e) {
+            console.error('Error fetching users_limit:', e);
+        }
+
         responseHandler.success(res, 'Users fetched successfully', {
             users: dataRes.rows,
             pagination: {
                 total: totalUsers,
                 page: parseInt(page),
                 limit: parseInt(limit),
-                totalPages: Math.ceil(totalUsers / parseInt(limit))
+                totalPages: Math.ceil(totalUsers / parseInt(limit)),
+                maxUsers: maxUsers
             }
         });
     } catch (err) {
@@ -128,6 +145,74 @@ exports.toggleUserStatus = async (req, res) => {
     } catch (err) {
         console.error('adminUserController.toggleUserStatus Error:', err);
         responseHandler.error(res, 'Failed to update user status');
+    }
+};
+
+/**
+ * Soft Delete User Account
+ */
+exports.deleteUser = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        // Soft delete user by updating is_active = false and setting deleted_at timestamp
+        db.query(`
+            ALTER TABLE users 
+            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+        `).catch(() => {});
+
+        const result = await db.query(
+            `UPDATE users 
+             SET is_active = false, 
+                 deleted_at = NOW() 
+             WHERE id = $1 
+             RETURNING id, name, email`,
+            [userId]
+        );
+
+        if (result.rows.length === 0) return responseHandler.error(res, 'User not found', 404);
+
+        responseHandler.success(res, `User account soft deleted successfully`, result.rows[0]);
+    } catch (err) {
+        console.error('adminUserController.deleteUser Error:', err);
+        responseHandler.error(res, 'Failed to soft delete user');
+    }
+};
+
+/**
+ * Clear All Assigned Tasks & Routines for a Specific User
+ */
+exports.clearUserTasks = async (req, res) => {
+    const { userId } = req.params;
+
+    const client = await db.pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. First remove generated daily task entries for this user to satisfy foreign key constraints
+        const dailyRes = await client.query(
+            'DELETE FROM daily_tasks WHERE user_id = $1 RETURNING id',
+            [userId]
+        );
+
+        // 2. Then remove user routines
+        const routineRes = await client.query(
+            'DELETE FROM user_routines WHERE user_id = $1 RETURNING id',
+            [userId]
+        );
+
+        await client.query('COMMIT');
+
+        responseHandler.success(res, 'User tasks and routines cleared successfully', {
+            clearedRoutinesCount: routineRes.rowCount,
+            clearedDailyTasksCount: dailyRes.rowCount
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('adminUserController.clearUserTasks Error:', err);
+        responseHandler.error(res, 'Failed to clear user tasks');
+    } finally {
+        client.release();
     }
 };
 
