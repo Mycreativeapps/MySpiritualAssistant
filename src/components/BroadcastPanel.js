@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Radio, Select, Space, Row, Col, Table, Tag, Popconfirm, message, Badge, Tooltip, Typography, Avatar, Modal, List } from 'antd';
-import { NotificationOutlined, SendOutlined, UserOutlined, TeamOutlined, HistoryOutlined, InfoCircleOutlined, TagOutlined, EyeOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Radio, Select, Space, Row, Col, Table, Tag, message, Tooltip, Typography, Avatar, Modal, List } from 'antd';
+import { NotificationOutlined, SendOutlined, UserOutlined, TeamOutlined, HistoryOutlined, InfoCircleOutlined, TagOutlined, EyeOutlined, BellOutlined, StarOutlined, MobileOutlined, AimOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const { Option } = Select;
@@ -147,34 +147,35 @@ const BroadcastPanel = () => {
         {
             title: 'Notification Content',
             key: 'content',
-            width: '33%',
+            width: '34%',
             render: (_, record) => (
                 <div>
-                    <div style={{ fontWeight: '600', color: '#f8fafc', marginBottom: '2px' }}>{record.title}</div>
-                    <div style={{ fontSize: '12px', color: '#94a3b8', maxLines: 2, textOverflow: 'ellipsis' }}>{record.body}</div>
+                    <div style={{ fontWeight: '600', color: '#f8fafc' }}>{record.title}</div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>{record.body}</div>
                 </div>
             )
         },
         {
-            title: 'Delivery',
-            key: 'delivery',
-            width: '15%',
+            title: 'Delivery Status',
+            key: 'status',
+            width: '14%',
             render: (_, record) => (
-                <Badge
-                    status={record.success_count > 0 ? "success" : "warning"}
-                    text={<span style={{ color: '#94a3b8' }}>{record.success_count} / {record.target_count} Sent</span>}
-                />
+                <div>
+                    <Tag color="success" style={{ marginBottom: '2px' }}>
+                        Delivered: {record.success_count}/{record.target_count}
+                    </Tag>
+                </div>
             )
         }
     ];
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <Row gutter={[24, 24]}>
-                {/* Broadcast Composer */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <Row gutter={[20, 20]}>
+                {/* Send Broadcast Form */}
                 <Col xs={24} lg={14}>
                     <Card
-                        title={<Space><NotificationOutlined style={{ color: '#6366f1' }} /> Compose Broadcast Push Notification</Space>}
+                        title={<Space><SendOutlined style={{ color: '#6366f1' }} /> Dispatch Push Broadcast</Space>}
                         style={{ borderRadius: '12px' }}
                     >
                         <Form
@@ -243,20 +244,20 @@ const BroadcastPanel = () => {
                                 </Form.Item>
                             )}
 
-                            {/* Quick Emoji Presets */}
+                            {/* Quick Presets */}
                             <Form.Item label="Quick Preset Tags">
                                 <Space wrap>
-                                    <Button size="small" icon={<TagOutlined />} onClick={() => handleQuickPreset('📢 Announcement:')}>
-                                        📢 Announcement
+                                    <Button size="small" icon={<NotificationOutlined />} onClick={() => handleQuickPreset('[Announcement]')}>
+                                        Announcement
                                     </Button>
-                                    <Button size="small" icon={<TagOutlined />} onClick={() => handleQuickPreset('⏰ Reminder:')}>
-                                        ⏰ Reminder
+                                    <Button size="small" icon={<BellOutlined />} onClick={() => handleQuickPreset('[Reminder]')}>
+                                        Reminder
                                     </Button>
-                                    <Button size="small" icon={<TagOutlined />} onClick={() => handleQuickPreset('🌟 Special Update:')}>
-                                        🌟 Special Update
+                                    <Button size="small" icon={<StarOutlined />} onClick={() => handleQuickPreset('[Special Update]')}>
+                                        Special Update
                                     </Button>
-                                    <Button size="small" icon={<TagOutlined />} onClick={() => handleQuickPreset('🙏 Devotional:')}>
-                                        🙏 Devotional
+                                    <Button size="small" icon={<TagOutlined />} onClick={() => handleQuickPreset('[Devotional]')}>
+                                        Devotional
                                     </Button>
                                 </Space>
                             </Form.Item>
@@ -267,7 +268,7 @@ const BroadcastPanel = () => {
                                 label="Notification Title"
                                 rules={[{ required: true, message: 'Notification title is required' }]}
                             >
-                                <Input placeholder="e.g. 📢 Evening Satsang Live Stream Notice" size="large" maxLength={100} showCount />
+                                <Input placeholder="e.g. Evening Satsang Live Stream Notice" size="large" maxLength={100} showCount />
                             </Form.Item>
 
                             {/* Body */}
@@ -278,31 +279,23 @@ const BroadcastPanel = () => {
                             >
                                 <Input.TextArea
                                     rows={4}
-                                    placeholder="Write your broadcast message here..."
+                                    placeholder="Enter your push broadcast message..."
                                     maxLength={500}
                                     showCount
                                 />
                             </Form.Item>
 
-                            {/* Submit Button */}
-                            <Popconfirm
-                                title="Confirm Broadcast Dispatch"
-                                description={`Are you sure you want to send this push notification to ${targetType === 'everyone' ? 'ALL users' : 'selected target'}?`}
-                                onConfirm={() => form.submit()}
-                                okText="Yes, Send Now"
-                                cancelText="Cancel"
+                            <Button
+                                type="primary"
+                                size="large"
+                                loading={sending}
+                                icon={<SendOutlined />}
+                                block
+                                htmlType="submit"
+                                style={{ backgroundColor: '#6366f1', borderColor: '#6366f1', height: '44px', fontWeight: '600' }}
                             >
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    loading={sending}
-                                    icon={<SendOutlined />}
-                                    block
-                                    style={{ backgroundColor: '#6366f1', borderColor: '#6366f1', height: '44px', fontWeight: '600' }}
-                                >
-                                    Dispatch Push Broadcast
-                                </Button>
-                            </Popconfirm>
+                                Dispatch Push Broadcast
+                            </Button>
                         </Form>
                     </Card>
                 </Col>
@@ -312,21 +305,27 @@ const BroadcastPanel = () => {
                     <Card title={<Space><InfoCircleOutlined style={{ color: '#52c41a' }} /> Broadcast Guidelines</Space>} style={{ borderRadius: '12px' }}>
                         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                             <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #6366f1' }}>
-                                <Text style={{ color: '#f8fafc', fontWeight: '600' }}>📱 Mobile Push Notifications</Text>
+                                <Text style={{ color: '#f8fafc', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <MobileOutlined style={{ color: '#6366f1' }} /> Mobile Push Notifications
+                                </Text>
                                 <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
                                     Broadcast notifications are delivered via FCM directly to all logged-in user mobile devices.
                                 </div>
                             </div>
 
                             <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #38bdf8' }}>
-                                <Text style={{ color: '#f8fafc', fontWeight: '600' }}>🎯 Multi-User & Role Targeting</Text>
+                                <Text style={{ color: '#f8fafc', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <AimOutlined style={{ color: '#38bdf8' }} /> Multi-User & Role Targeting
+                                </Text>
                                 <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
                                     Select <b>Everyone</b> to send to all registered devotees, or choose specific users using the multi-select dropdown.
                                 </div>
                             </div>
 
                             <div style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>
-                                <Text style={{ color: '#f8fafc', fontWeight: '600' }}>🔔 Sound & Alert Priority</Text>
+                                <Text style={{ color: '#f8fafc', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <BellOutlined style={{ color: '#f59e0b' }} /> Sound & Alert Priority
+                                </Text>
                                 <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>
                                     All broadcast push notifications play the custom single bell sound on mobile devices.
                                 </div>

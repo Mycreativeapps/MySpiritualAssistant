@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Switch, Space, Typography, Tag, Row, Col, Alert, message, Spin, Statistic, Button, Divider } from 'antd';
-import { ToolOutlined, ApiOutlined, CheckCircleOutlined, ThunderboltOutlined, CreditCardOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, MailOutlined, StarOutlined } from '@ant-design/icons';
+import { Card, Input, Switch, Space, Typography, Tag, Row, Col, Alert, message, Spin, Statistic, Button, Divider, Modal, Checkbox, Popconfirm } from 'antd';
+import { ToolOutlined, ApiOutlined, CheckCircleOutlined, ThunderboltOutlined, CreditCardOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, MailOutlined, StarOutlined, ClearOutlined, TableOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const { Text } = Typography;
@@ -22,6 +22,30 @@ const DeveloperPanel = () => {
     // Task Score Labels state
     const [scoreLabels, setScoreLabels] = useState({});
     const [savingScores, setSavingScores] = useState(false);
+
+    // Database Maintenance state
+    const [clearingDb, setClearingDb] = useState(false);
+    const [selectTablesModalVisible, setSelectTablesModalVisible] = useState(false);
+    const [selectedTables, setSelectedTables] = useState([]);
+
+    const handleClearDatabase = async (targetOption, customTables = []) => {
+        setClearingDb(true);
+        try {
+            const res = await api.post('/developer/clear-database', {
+                target: targetOption,
+                tables: customTables
+            });
+            message.success(res.data?.message || 'Database operation executed successfully');
+            fetchDeveloperData();
+            setSelectTablesModalVisible(false);
+            setSelectedTables([]);
+        } catch (err) {
+            console.error('Clear DB operation error:', err);
+            message.error(err.response?.data?.message || 'Database maintenance operation failed');
+        } finally {
+            setClearingDb(false);
+        }
+    };
 
     useEffect(() => {
         fetchDeveloperData();
@@ -248,6 +272,83 @@ const DeveloperPanel = () => {
                     </Col>
                 </Row>
             )}
+
+            {/* Database Maintenance & Clear Section */}
+            <Card
+                title={<Space><ClearOutlined style={{ color: '#ff4d4f' }} /> Database Maintenance & Reset Operations</Space>}
+                style={{ borderRadius: '12px', border: '1px solid #7f1d1d', background: '#111827' }}
+            >
+                <Row gutter={[16, 16]}>
+                    {/* Clear Tasks & Routines Only */}
+                    <Col xs={24} md={8}>
+                        <Card style={{ background: '#1f2937', borderRadius: '10px', height: '100%' }}>
+                            <Title level={5} style={{ color: '#fa8c16', margin: 0 }}>
+                                <Space><ClearOutlined /> Clear User Tasks & Routines</Space>
+                            </Title>
+                            <Text type="secondary" style={{ fontSize: '12px', display: 'block', margin: '8px 0 16px' }}>
+                                Resets all assigned user routines & daily completion logs. Keeps registered user accounts intact.
+                            </Text>
+                            <Popconfirm
+                                title="Clear User Tasks & Routines"
+                                description="Are you sure you want to clear all user task assignments and completion records?"
+                                onConfirm={() => handleClearDatabase('tasks_only')}
+                                okText="Yes, Clear Tasks"
+                                cancelText="Cancel"
+                                okButtonProps={{ danger: true }}
+                            >
+                                <Button type="default" danger icon={<ClearOutlined />} loading={clearingDb} block>
+                                    Clear User Tasks & Routines
+                                </Button>
+                            </Popconfirm>
+                        </Card>
+                    </Col>
+
+                    {/* Clear Selected Custom Tables */}
+                    <Col xs={24} md={8}>
+                        <Card style={{ background: '#1f2937', borderRadius: '10px', height: '100%' }}>
+                            <Title level={5} style={{ color: '#38bdf8', margin: 0 }}>
+                                <Space><TableOutlined /> Select & Clear Custom Tables</Space>
+                            </Title>
+                            <Text type="secondary" style={{ fontSize: '12px', display: 'block', margin: '8px 0 16px' }}>
+                                Select specific database tables (e.g. master_tasks, refresh_tokens) to truncate selectively.
+                            </Text>
+                            <Button
+                                type="primary"
+                                icon={<TableOutlined />}
+                                onClick={() => setSelectTablesModalVisible(true)}
+                                block
+                                style={{ backgroundColor: '#0284c7', borderColor: '#0284c7' }}
+                            >
+                                Select Tables to Truncate
+                            </Button>
+                        </Card>
+                    </Col>
+
+                    {/* Full DB Reset */}
+                    <Col xs={24} md={8}>
+                        <Card style={{ background: '#1f2937', borderRadius: '10px', height: '100%' }}>
+                            <Title level={5} style={{ color: '#ef4444', margin: 0 }}>
+                                <Space><DeleteOutlined /> Entire DB Purge & Reset</Space>
+                            </Title>
+                            <Text type="secondary" style={{ fontSize: '12px', display: 'block', margin: '8px 0 16px' }}>
+                                Truncates all user tables, routines, daily tasks, and tokens. Full clean state for fresh testing.
+                            </Text>
+                            <Popconfirm
+                                title="PURGE ENTIRE DATABASE"
+                                description="DANGER! This will permanently delete ALL users, routines, and task entries. Proceed?"
+                                onConfirm={() => handleClearDatabase('entire_db')}
+                                okText="PURGE ENTIRE DB"
+                                cancelText="Cancel"
+                                okButtonProps={{ danger: true }}
+                            >
+                                <Button type="primary" danger icon={<DeleteOutlined />} loading={clearingDb} block>
+                                    Purge Entire Database
+                                </Button>
+                            </Popconfirm>
+                        </Card>
+                    </Col>
+                </Row>
+            </Card>
 
             <Row gutter={[24, 24]}>
                 {/* App Feature Settings */}
@@ -531,6 +632,45 @@ const DeveloperPanel = () => {
                     </Space>
                 </Col>
             </Row>
+
+            {/* Custom Tables Truncate Modal */}
+            <Modal
+                title={<Space><TableOutlined style={{ color: '#0284c7' }} /> Select Database Tables to Truncate</Space>}
+                open={selectTablesModalVisible}
+                onCancel={() => setSelectTablesModalVisible(false)}
+                okText="Truncate Selected Tables"
+                okButtonProps={{ danger: true, loading: clearingDb, disabled: selectedTables.length === 0 }}
+                onOk={() => handleClearDatabase('custom_tables', selectedTables)}
+            >
+                <div style={{ marginBottom: '16px', color: '#94a3b8', fontSize: '13px' }}>
+                    Select specific database tables to truncate. Associated foreign keys will be safely handled via <code>CASCADE</code>.
+                </div>
+                <Checkbox.Group
+                    style={{ width: '100%' }}
+                    value={selectedTables}
+                    onChange={(checkedValues) => setSelectedTables(checkedValues)}
+                >
+                    <Row gutter={[16, 12]}>
+                        {[
+                            { label: 'daily_tasks (Daily Completion Logs)', value: 'daily_tasks' },
+                            { label: 'user_routines (Assigned Routines)', value: 'user_routines' },
+                            { label: 'user_relationships (Mentorship Links)', value: 'user_relationships' },
+                            { label: 'master_tasks (Task Master List)', value: 'master_tasks' },
+                            { label: 'refresh_tokens (User Auth Tokens)', value: 'refresh_tokens' },
+                            { label: 'email_verifications (OTP Logs)', value: 'email_verifications' },
+                            { label: 'broadcast_notifications (Broadcast Logs)', value: 'broadcast_notifications' },
+                            { label: 'app_settings (Dynamic Configurations)', value: 'app_settings' },
+                            { label: 'users (All Devotee Accounts)', value: 'users' },
+                        ].map(item => (
+                            <Col span={24} key={item.value}>
+                                <Checkbox value={item.value} style={{ color: '#f8fafc' }}>
+                                    <code>{item.value}</code> <span style={{ color: '#94a3b8', fontSize: '12px' }}>- {item.label}</span>
+                                </Checkbox>
+                            </Col>
+                        ))}
+                    </Row>
+                </Checkbox.Group>
+            </Modal>
         </div>
     );
 };

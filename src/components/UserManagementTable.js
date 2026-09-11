@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Tag, Input, Select, Button, Modal, Drawer, Form, Space, message, Card, Popconfirm, Avatar, Image, Divider, Tooltip } from 'antd';
-import { SearchOutlined, UserOutlined, EditOutlined, StopOutlined, CheckCircleOutlined, EyeOutlined, ReloadOutlined, CameraOutlined, EnvironmentOutlined, FolderOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { SearchOutlined, UserOutlined, EditOutlined, StopOutlined, CheckCircleOutlined, EyeOutlined, ReloadOutlined, CameraOutlined, EnvironmentOutlined, FolderOutlined, ThunderboltOutlined, DeleteOutlined, ClearOutlined, TeamOutlined, MobileOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const { Option } = Select;
@@ -49,7 +49,8 @@ const UserManagementTable = () => {
                 setPagination({
                     current: pg.page,
                     pageSize: pg.limit,
-                    total: pg.total
+                    total: pg.total,
+                    maxUsers: pg.maxUsers || 100
                 });
             }
         } catch (err) {
@@ -125,6 +126,27 @@ const UserManagementTable = () => {
             fetchUsers(pagination.current, pagination.pageSize);
         } catch (err) {
             message.error(err.response?.data?.message || 'Failed to update user status');
+        }
+    };
+
+    // Soft Delete User
+    const handleDeleteUser = async (userRecord) => {
+        try {
+            await api.delete(`/admin/users/${userRecord.id}`);
+            message.success(`User '${userRecord.name}' soft deleted successfully!`);
+            fetchUsers(pagination.current, pagination.pageSize);
+        } catch (err) {
+            message.error(err.response?.data?.message || 'Failed to soft delete user');
+        }
+    };
+
+    // Clear User Assigned Tasks & Routines
+    const handleClearUserTasks = async (userRecord) => {
+        try {
+            const res = await api.delete(`/admin/users/${userRecord.id}/tasks`);
+            message.success(`Cleared tasks & routines for ${userRecord.name}! (${res.data?.data?.clearedRoutinesCount || 0} routines, ${res.data?.data?.clearedDailyTasksCount || 0} daily entries)`);
+        } catch (err) {
+            message.error(err.response?.data?.message || 'Failed to clear user tasks');
         }
     };
 
@@ -206,47 +228,82 @@ const UserManagementTable = () => {
             width: '18%',
             render: (_, record) => (
                 <Space size="small">
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<EyeOutlined />}
-                        onClick={() => {
-                            setViewUser(record);
-                            setDrawerVisible(true);
-                        }}
-                    >
-                        View
-                    </Button>
-
-                    <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined style={{ color: '#6366f1' }} />}
-                        onClick={() => {
-                            setEditRoleUser(record);
-                            setSelectedRole(record.role);
-                            setRoleModalVisible(true);
-                        }}
-                    >
-                        Role
-                    </Button>
-
-                    <Popconfirm
-                        title={`${record.is_active ? 'Suspend' : 'Activate'} User`}
-                        description={`Are you sure you want to ${record.is_active ? 'suspend' : 'activate'} ${record.name}?`}
-                        onConfirm={() => handleToggleStatus(record)}
-                        okText="Yes"
-                        cancelText="No"
-                    >
+                    <Tooltip title="View User Details">
                         <Button
                             type="text"
                             size="small"
-                            danger={record.is_active}
-                            icon={record.is_active ? <StopOutlined /> : <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                            icon={<EyeOutlined />}
+                            onClick={() => {
+                                setViewUser(record);
+                                setDrawerVisible(true);
+                            }}
+                        />
+                    </Tooltip>
+
+                    <Tooltip title="Change Role">
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined style={{ color: '#6366f1' }} />}
+                            onClick={() => {
+                                setEditRoleUser(record);
+                                setSelectedRole(record.role);
+                                setRoleModalVisible(true);
+                            }}
+                        />
+                    </Tooltip>
+
+                    <Tooltip title={record.is_active ? 'Suspend Account' : 'Activate Account'}>
+                        <Popconfirm
+                            title={`${record.is_active ? 'Suspend' : 'Activate'} User`}
+                            description={`Are you sure you want to ${record.is_active ? 'suspend' : 'activate'} ${record.name}?`}
+                            onConfirm={() => handleToggleStatus(record)}
+                            okText="Yes"
+                            cancelText="No"
                         >
-                            {record.is_active ? 'Suspend' : 'Activate'}
-                        </Button>
-                    </Popconfirm>
+                            <Button
+                                type="text"
+                                size="small"
+                                danger={record.is_active}
+                                icon={record.is_active ? <StopOutlined /> : <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+
+                    <Tooltip title="Clear Assigned Tasks & Routines">
+                        <Popconfirm
+                            title="Clear User Tasks"
+                            description={`Clear all assigned routines and daily tasks for ${record.name}?`}
+                            onConfirm={() => handleClearUserTasks(record)}
+                            okText="Clear"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<ClearOutlined style={{ color: '#fa8c16' }} />}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
+
+                    <Tooltip title="Delete User">
+                        <Popconfirm
+                            title="Delete User"
+                            description={`Are you sure you want to soft delete ${record.name}?`}
+                            onConfirm={() => handleDeleteUser(record)}
+                            okText="Delete"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                        >
+                            <Button
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                            />
+                        </Popconfirm>
+                    </Tooltip>
                 </Space>
             ),
         },
@@ -256,16 +313,27 @@ const UserManagementTable = () => {
         <div>
             <Card style={{ marginBottom: '10px', borderRadius: '12px' }}>
                 <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <Input.Search
-                        placeholder="Search by Name, Email, Phone"
-                        allowClear
-                        enterButton={<SearchOutlined />}
-                        size="large"
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        onSearch={(val) => setSearch(val)}
-                        style={{ width: 320 }}
-                    />
+                    <Space wrap size="middle" align="center">
+                        <Input.Search
+                            placeholder="Search by Name, Email, Phone"
+                            allowClear
+                            enterButton={<SearchOutlined />}
+                            size="large"
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            onSearch={(val) => setSearch(val)}
+                            style={{ width: 320 }}
+                        />
+
+                        {/* Metric Chips next to search filter */}
+                        <Tag icon={<TeamOutlined />} color="purple" style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Total Users: <strong style={{ color: '#c084fc', marginLeft: '4px' }}>{pagination.total}</strong>
+                        </Tag>
+
+                        <Tag icon={<ThunderboltOutlined />} color="gold" style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600' }}>
+                            Max Users: <strong style={{ color: '#facc15', marginLeft: '4px' }}>{pagination.maxUsers || 100}</strong>
+                        </Tag>
+                    </Space>
 
                     <Space wrap size="middle">
                         <Select
@@ -301,6 +369,7 @@ const UserManagementTable = () => {
                     </Space>
                 </Space>
             </Card>
+
 
             <Card style={{ borderRadius: '12px' }} bodyStyle={{ padding: '12px 16px' }}>
                 <Table
@@ -348,8 +417,8 @@ const UserManagementTable = () => {
                 footer={
                     viewUser && (
                         <div style={{ background: '#151c2c' }}>
-                            <div style={{ fontWeight: '600', color: '#94a3b8', marginBottom: '8px', fontSize: '12px' }}>
-                                📱 Mobile Device Permissions:
+                            <div style={{ fontWeight: '600', color: '#94a3b8', marginBottom: '8px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <MobileOutlined /> Mobile Device Permissions:
                             </div>
                             <Space size="middle" align="center">
                                 {renderPermissionIcon('Camera', <CameraOutlined />, viewUser.permissions_status?.camera, '#38bdf8')}
