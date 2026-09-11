@@ -3,7 +3,7 @@ import { Card, Input, Switch, Space, Typography, Tag, Row, Col, Alert, message, 
 import { ToolOutlined, ApiOutlined, CheckCircleOutlined, ThunderboltOutlined, CreditCardOutlined, SaveOutlined, PlusOutlined, DeleteOutlined, MailOutlined, StarOutlined, ClearOutlined, TableOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const DeveloperPanel = () => {
     const [settings, setSettings] = useState({});
