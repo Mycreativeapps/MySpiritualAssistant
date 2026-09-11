@@ -105,3 +105,71 @@ exports.getSystemHealth = async (req, res) => {
         responseHandler.error(res, 'System health check failed');
     }
 };
+
+/**
+ * Developer Database Maintenance & Clearing Tool
+ * Targets: 'tasks_only' | 'entire_db' | 'custom_tables'
+ */
+exports.clearDatabaseTarget = async (req, res) => {
+    const { target, tables } = req.body;
+
+    const client = await db.pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        let messageDetails = '';
+
+        if (target === 'tasks_only') {
+            // Clears all assigned routines and daily task logs while keeping users intact.
+            // Executing in a single TRUNCATE statement with CASCADE avoids foreign key sequence locking
+            await client.query('TRUNCATE TABLE daily_tasks, user_routines CASCADE');
+            await client.query('ALTER SEQUENCE IF EXISTS user_routines_id_seq RESTART WITH 1');
+            messageDetails = 'All user routines and daily task logs have been cleared successfully.';
+        } else if (target === 'entire_db') {
+            // Clears all application user data, routines, tasks, tokens in one atomic CASCADE call
+            await client.query('TRUNCATE TABLE daily_tasks, user_routines, user_relationships, email_verifications, refresh_tokens, broadcast_notifications, users CASCADE');
+
+            await client.query('ALTER SEQUENCE IF EXISTS user_routines_id_seq RESTART WITH 1');
+            await client.query('ALTER SEQUENCE IF EXISTS email_verifications_id_seq RESTART WITH 1');
+            messageDetails = 'Entire Database cleared successfully (all users, routines, and task entries reset).';
+        } else if (target === 'custom_tables' && Array.isArray(tables) && tables.length > 0) {
+            // Safe whitelist of clearable tables
+            const allowedTables = [
+                'daily_tasks',
+                'user_routines',
+                'user_relationships',
+                'master_tasks',
+                'refresh_tokens',
+                'email_verifications',
+                'broadcast_notifications',
+                'app_settings',
+                'users'
+            ];
+
+            const selectedTables = tables.filter(t => allowedTables.includes(t));
+            if (selectedTables.length === 0) {
+                await client.query('ROLLBACK');
+                return responseHandler.error(res, 'No valid clearable tables selected', 400);
+            }
+
+            // Truncate all selected tables at once in a single SQL command with CASCADE.
+            // This prevents foreign key deadlocks/conflicts between dependent tables!
+            const truncateQuery = `TRUNCATE TABLE ${selectedTables.join(', ')} CASCADE`;
+            await client.query(truncateQuery);
+
+            messageDetails = `Selected tables cleared successfully: [${selectedTables.join(', ')}].`;
+        } else {
+            await client.query('ROLLBACK');
+            return responseHandler.error(res, 'Invalid clear target option specified', 400);
+        }
+
+        await client.query('COMMIT');
+        responseHandler.success(res, messageDetails);
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('adminDeveloperController.clearDatabaseTarget Error:', err);
+        responseHandler.error(res, 'Database maintenance operation failed: ' + err.message);
+    } finally {
+        client.release();
+    }
+};
