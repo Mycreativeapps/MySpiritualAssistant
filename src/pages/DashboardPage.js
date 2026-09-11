@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Typography, Tag, Button, Avatar, Space, Card, Row, Col, Statistic, Image } from 'antd';
+import { Layout, Menu, Typography, Tag, Button, Avatar, Card, Row, Col, Statistic, Image } from 'antd';
 import {
     UserOutlined,
     DashboardOutlined,
     ToolOutlined,
     LogoutOutlined,
-    CrownOutlined,
     TeamOutlined,
     CheckSquareOutlined,
     SafetyCertificateOutlined,
@@ -16,10 +15,11 @@ import { useAuth } from '../context/AuthContext';
 import UserManagementTable from '../components/UserManagementTable';
 import DeveloperPanel from '../components/DeveloperPanel';
 import BroadcastPanel from '../components/BroadcastPanel';
+import MasterTaskManager from '../components/MasterTaskManager';
 import api from '../services/api';
 
 const { Header, Sider, Content } = Layout;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const DashboardPage = () => {
     const { user, logout } = useAuth();
@@ -49,6 +49,11 @@ const DashboardPage = () => {
             key: 'users',
             icon: <TeamOutlined />,
             label: 'User Management',
+        },
+        {
+            key: 'tasks',
+            icon: <CheckSquareOutlined />,
+            label: 'Master Tasks',
         },
         {
             key: 'broadcast',
@@ -132,10 +137,11 @@ const DashboardPage = () => {
                     zIndex: 10
                 }}>
                     <Title level={4} style={{ margin: 0, color: '#f8fafc', fontWeight: '700', lineHeight: 1 }}>
-                        {selectedMenuKey === 'users' && '👥 Devotee & User Management'}
-                        {selectedMenuKey === 'broadcast' && '📢 Broadcast Push Notifications'}
-                        {selectedMenuKey === 'overview' && '📊 System Overview & Analytics'}
-                        {selectedMenuKey === 'developer' && '🛠️ Lead Developer Control Zone'}
+                        {selectedMenuKey === 'users' && 'Devotee & User Management'}
+                        {selectedMenuKey === 'tasks' && 'Master Tasks Directory'}
+                        {selectedMenuKey === 'broadcast' && 'Broadcast Push Notifications'}
+                        {selectedMenuKey === 'overview' && 'System Overview & Analytics'}
+                        {selectedMenuKey === 'developer' && 'Lead Developer Control Zone'}
                     </Title>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -176,6 +182,7 @@ const DashboardPage = () => {
 
                 <Content style={{ padding: '12px 16px', flex: 1, overflowY: 'auto', background: '#0b0f19' }}>
                     {selectedMenuKey === 'users' && <UserManagementTable />}
+                    {selectedMenuKey === 'tasks' && <MasterTaskManager />}
                     {selectedMenuKey === 'broadcast' && <BroadcastPanel />}
 
                     {selectedMenuKey === 'overview' && (
